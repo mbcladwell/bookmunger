@@ -2,7 +2,7 @@
 ;;-e main -s
 ;;!#
 
- (add-to-load-path "/home/mbc/projects")
+ (add-to-load-path "/home/mbc/projects/bookmunger")
 
  ;;(add-to-load-path "/home/admin/projects")
 
@@ -25,10 +25,47 @@
 	     )
 
 (define book-count 0)
+(define all-chars "-a-zA-Z0-9ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſǍǎǏǐǑǒǓǔǕǖǗǘǙǚǛǜƏƒƠơƯƯǺǻǼǽǾǿńŻć<>~_+=,.:;()&#@®\" ")
 
 (define (remove-zlib str)
-   (let*
-	(string-index str /#.))
+  (let* ((dot (string-rindex str #\.)) ;;reverse search
+	 (name (substring str 0  dot ))
+	 (len (length (string->list name)))
+	 (a (substring name (- len 11) len))
+	 (is-it-zlib? (string= " (zlib.org)" a)))
+    (if is-it-zlib?
+	(let* ((len2 (length (string->list str)))
+	       (ext (substring str dot len2))  ;;inlcudes the .
+	       (new-name (substring name 0 (- len 11))))
+	  (string-append new-name ext))
+	str)))
+
+
+;;(remove-zlib "some book name by Peter LaPan (zlib.org).epub")
+
+
+(define (get-title-author str)
+  ;; return a list '(title author new-file-name)
+  ;; if "by" is in the title, I will not extract author
+  (let* ((len (length (string->list str)))
+	 (dot (string-rindex str #\.)) ;;reverse search
+	 (pref (substring str 0  dot ))
+	 (len-pref (length (string->list pref)))
+	 (suf (substring str dot len)) ;; includes .
+	 (a (list-matches " by " pref))
+	 ;;test if a is length 1
+	 (start (match:start (car a)))
+	 (end (match:end (car a)))
+	 (title (substring pref 0 start))
+	 (author (substring pref end len-pref))
+	 (new-file-name (string-append title suf))
+	 )
+
+  new-file-name ))
+
+(get-title-author "some book the name by Peter LaPan (zlib.org).epub")
+
+
 
 
 (define (main args)
