@@ -1,0 +1,26 @@
+(hall-description
+  (name "bookmunger")
+  (prefix "")
+  (version "0.1")
+  (author "mbcladwell")
+  (copyright (2021))
+  (synopsis "")
+  (description "")
+  (home-page "www.labsolns.com")
+  (license gpl3+)
+  (dependencies `())
+  (files (libraries
+           ((scheme-file "bookmunger")
+            (directory "bookmunger" ())))
+         (tests ((directory "tests" ())))
+         (programs ((directory "scripts" ())))
+         (documentation
+           ((org-file "README")
+            (symlink "README" "README.org")
+            (text-file "HACKING")
+            (text-file "COPYING")
+            (directory "doc" ((texi-file "bookmunger")))))
+         (infrastructure
+           ((scheme-file "guix")
+            (text-file ".gitignore")
+            (scheme-file "hall")))))
