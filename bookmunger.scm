@@ -26,7 +26,7 @@
              (logging logger)
              (logging rotating-log)
              (logging port-log)
-	     (sxml simple)
+	     (sxml simple)	     
 	     )
 
 (define book-count 0)
@@ -36,10 +36,10 @@
 (define on-deck-dir "/home/mbc/temp/lib/")  ;; out of z-lib ready to have z-lib removed
 (define no-zlib-dir "/home/temp/mbc/lib/nozlib/")  ;; no z-lib, ready for title author extraction; regular books here
 (define dest-dir "/home/temp/lib/mbc/finalmod/") ;; final destination directory probably ~/syncd/library/files
-(define lib-file-name "Library1.reflib")
+(define lib-file-name "a-lib.reflib")
 
 
-(define tags '((0 . fiction)	(1 . nonfiction)(2 . technical)(3 . R)(4 . statistics)(5 . Bayes)(6 . popgen)(7 . gametheory)(9 . bitcoin)(10 . genetics)(11 . work)(12 . admixture)(13 . DOE)(14 . manuals)(15 . programming)(16 . math)(17 . smalltalk)(18 . history)(19 . philosophy)))
+(define tags '((0 . "fiction")	(1 . "nonfiction")(2 . "technical")(3 . R)(4 . "statistics")(5 . "Bayes")(6 . "popgen")(7 . "gametheory")(9 . "bitcoin")(10 . "genetics")(11 . "work")(12 . "admixture")(13 . "DOE")(14 . "manuals")(15 . "programming")(16 . "math")(17 . "smalltalk")(18 . "history")(19 . "philosophy")))
 
 
 (define (remove-zlib str)
@@ -93,9 +93,7 @@
 	 (end (match:end (car a)))
 	 (title (substring pref 0 start))
 	 (author (substring pref end len-pref))
-	 (new-file-name (string-append title suf))
-	 )
-
+	 (new-file-name (string-append title suf)) )
   `(,title ,author ,new-file-name) ))
 
 ;;(get-title-author-filename "some book the name by Peter LaPan (zlib.org).epub")
@@ -124,62 +122,30 @@
 
 (define pi (cadr a));; (*PI* xml "version=\"1.0\" encoding=\"UTF-8\"")
 ;;(pretty-print (cadr a))
-(define manage-target (cadr (cdaddr a));; (library "\n\t" (manage_target (@ (utf8 "false") (braces...
+(define manage-target (cadr (cdaddr a)));; (library "\n\t" (manage_target (@ (utf8 "false") (braces...
 ;;(pretty-print (cadr (cdaddr a)))
 (define library-folder (cdddr a));;
 ;;(pretty-print (cadddr (cdaddr a)))
 (define taglist (caddr (cddddr (caddr a))));;
 ;;(pretty-print (caddr (cddddr (caddr a))))
-(define doclist (car (cddddr (cddddr (caddr a)))))
+(define doclist (cdar (cddddr (cddddr (caddr a)))))
+;;(pretty-print (cdar (cddddr (cddddr (caddr a)))))
 ;;(pretty-print (car (cddddr (cddddr (caddr a)))))
+
 ;;print library
 ;;(pretty-print  (caddr a))
+  
 
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define lib (cddr a)) ;;library
-(define doclist (car (cddddr (cddddr lib)))) ;;doclist
-(pretty-print doclist)
-(caddr doclist)
-
-(define (make-tags arg)
-  ;; expect tags to be string of numbers "11 2 5 7"
-  (let* ((tags (string-split arg #\space ))
-	 
-
-	 )
-    ))
-
-(define out (open-file "/home/mbc/projects/bookmunger/out.txt" "w"))
-
-(format out "~a" "some text" )
-
-(define myvar 11)
-
-(begin (format out "~a" "(tagged \"" "\")" )
-(force-output out))
-
-
-(string-split "4 5 6 7 8" #\space)
-
-(define adoc `(doc "\n\t\t\t" (relative_filename "files/1-s2.0-0022175995002626-main.pdf") "\n\t\t\t" (key "1_s2.0_0022175") "\n\t\t\t" (notes) "\n\t\t\t" (tagged "11") "\n\t\t\t" (bib_type "article") "\n\t\t\t" (bib_doi) "\n\t\t\t" (bib_title "Application of experimental design techniques to optimize a competitive ELISA.") "\n\t\t\t" (bib_authors) "\n\t\t\t" (bib_journal) "\n\t\t\t" (bib_volume) "\n\t\t\t" (bib_number) "\n\t\t\t" (bib_pages) "\n\t\t\t" (bib_year "1996") "\n\t\t"))
-
-(pretty-print adoc)
-
-
+;;(pretty-print (make-lib-file doclist))
 
 (define (recurse-make-tag lst new-lst)
   (if (null? (cdr lst))
       (begin
-	 (set! new-lst (cons (string-append "(tagged \"" (car lst) "\"") new-lst))
+	 (set! new-lst (cons (string-append "(tagged \"" (car lst) "\")") new-lst))
 	 new-lst)
       (begin
-	(set! new-lst (cons (string-append "(tagged \"" (car lst) "\"") new-lst))
-	(recurse-make-tag (cdr lst) new-lst)))
-  )
-
-;;(pretty-print (recurse-make-tag (string-split "4 5 6 7 8" #\space) '()))
+	(set! new-lst (cons (string-append "(tagged \"" (car lst) "\")") new-lst))
+	(recurse-make-tag (cdr lst) new-lst))))
 
 (define (make-tags args)
   ;;args is a string of integers i.e. "4 5 6 7 8"
@@ -188,13 +154,22 @@
     b))
 
 
+(define (make-lib-backup)
+ ;;lib-dir "/home/mbc/temp/lib/" ;; home of library XML
+ ;;lib-backup-dir "/home/mbc/temp/lib/backups/" ;;
+ ;;lib-file-name "a-lib.reflib"
+  (let*((pref (date->string  (current-date) "~Y~m~d~I~M"))
+	(backup-file-name (string-append lib-backup-dir pref "-" lib-file-name ))
+	(working-file-name (string-append lib-dir lib-file-name))
+	(command (string-append "cp " working-file-name " " backup-file-name)))
+    (system command)))
+
+
+
+
 (define (make-doc filename key tags title authors  )
-   `(doc "\n\t\t\t" (relative_filename ,(string-append "files/" filename)) "\n\t\t\t" (key "1_s2.0_0022175") "\n\t\t\t" (notes) "\n\t\t\t" ,@tags "\n\t\t\t" (bib_type "book") "\n\t\t\t" (bib_doi) "\n\t\t\t" (bib_title ,title) "\n\t\t\t" (bib_authors ,authors) "\n\t\t\t" (bib_journal) "\n\t\t\t" (bib_volume) "\n\t\t\t" (bib_number) "\n\t\t\t" (bib_pages) "\n\t\t\t" (bib_year) "\n\t\t")
+   `(doc "\n\t\t\t" (relative_filename ,(string-append "files/" filename)) "\n\t\t\t" (key ,key) "\n\t\t\t" (notes) "\n\t\t\t" ,@tags "\n\t\t\t" (bib_type "book") "\n\t\t\t" (bib_doi) "\n\t\t\t" (bib_title ,title) "\n\t\t\t" (bib_authors ,authors) "\n\t\t\t" (bib_journal) "\n\t\t\t" (bib_volume) "\n\t\t\t" (bib_number) "\n\t\t\t" (bib_pages) "\n\t\t\t" (bib_year) "\n\t\t")
   )
-
-
-
-(pretty-print (make-doc "myfile" "mykey" (make-tags "11 2 5 6") "A Title" "P.B Woodhouse, Joe Schmoe"))
 
 
 (define (main args)
@@ -202,8 +177,8 @@
   ;;       stash - put into xml file
   (let* ((start-time (current-time time-monotonic))
 	 (dummy2 (log-msg 'CRITICAL (string-append "Starting up at: "  (number->string (time-second start-time)))))
-	 (a (get-summaries (cadr args) (caddr args)))
-	 (dummy (map retrieve-article a))  ;;this does all the work; comment out last line for testing
+	;; (a (get-summaries (cadr args) (caddr args)))
+	;; (dummy (map retrieve-article a))  ;;this does all the work; comment out last line for testing
 	 (stop-time (current-time time-monotonic))
 	 (elapsed-time (ceiling (/ (time-second (time-difference stop-time start-time)) 60)))
 	 (dummy3 (log-msg 'INFO (string-append "Elapsed time: " (number->string   elapsed-time) " minutes.")))
