@@ -141,10 +141,10 @@
 (define (recurse-make-tag lst new-lst)
   (if (null? (cdr lst))
       (begin
-	 (set! new-lst (cons (string-append "(tagged \"" (car lst) "\")") new-lst))
-	 new-lst)
+	 (set! new-lst (cons (string-append "(tagged \"" (car lst) "\")\n\t\t\t") new-lst))
+	 (apply string-append new-lst))
       (begin
-	(set! new-lst (cons (string-append "(tagged \"" (car lst) "\")") new-lst))
+	(set! new-lst (cons (string-append "(tagged \"" (car lst) "\")\n\t\t\t") new-lst))
 	(recurse-make-tag (cdr lst) new-lst))))
 
 (define (make-tags args)
@@ -153,6 +153,7 @@
 	(b (recurse-make-tag a '())))
     b))
 
+;; (make-tags "4 5 6 7")
 
 (define (make-lib-backup)
  ;;lib-dir "/home/mbc/temp/lib/" ;; home of library XML
