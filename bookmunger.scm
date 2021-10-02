@@ -34,9 +34,9 @@
 
 (define lib-dir "/home/mbc/temp/lib/") ;; home of library XML
 (define lib-backup-dir "/home/mbc/temp/lib/backups/") ;;
-(define on-deck-dir "/home/mbc/temp/lib/")  ;; out of z-lib ready to have z-lib removed
+(define on-deck-dir "/home/mbc/temp/lib/on-deck/")  ;; out of z-lib ready to have z-lib removed
 (define no-zlib-dir "/home/temp/mbc/lib/nozlib/")  ;; no z-lib, ready for title author extraction; regular books here
-(define dest-dir "/home/temp/lib/mbc/finalmod/") ;; final destination directory probably ~/syncd/library/files
+(define dest-dir "/home/temp/lib/finalmod/") ;; final destination directory probably ~/syncd/library/files
 (define lib-file-name "a-lib.reflib")
 
 
@@ -100,14 +100,19 @@
 	     (dummy (set! ids (cons c ids))))
 	(get-auth-ids (cdr auths) ids))))
 
-  
+
+
+
 
 (define (get-author-ids arg)
-  ;;for a string of | delimitted authors get the ids
+  ;;for a string of , delimitted authors get the ids
+  ;;beware of last, first authors - must be edited
   ;;add to database if needed
   (let*((trimmed (string-trim-both arg))
-	(auth-lst (string-split trimmed #\|)))
-    (recurse-get-auth-ids auth-lst '())))
+	(auth-lst (string-split trimmed #\,))
+	(trimmed-auth-lst (map string-trim-both auth-lst))
+	)
+    (recurse-get-auth-ids trimmed-auth-lst '())))
 
 
 (define (get-title-author-ids-filename str)
@@ -176,6 +181,13 @@
 
 
 
+(define (process-file f)
+  (let* ((a (remove-zlib-from-filename f))
+	 (b (add-book-to-db (get-title-author-ids-filename a)))
+	 )
+    )
+  )
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -195,6 +207,7 @@
   ;;       stash - put into xml file
   (let* ((start-time (current-time time-monotonic))
 	 (dummy2 (log-msg 'CRITICAL (string-append "Starting up at: "  (number->string (time-second start-time)))))
+	 (all-files (cddr on-deck-dir))
 	;; (results (recurse-get-author-ids "Peter LaPan|Joe Blow|Me Too"))
 	 
 	 (results (add-book-to-db "my-title3" '(1 2) '(1 2) "myfilename3"))

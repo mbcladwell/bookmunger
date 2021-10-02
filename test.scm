@@ -29,8 +29,14 @@
 ()
 
 
+(map string-trim-both '(" jdhfs " "  skjdfk " " skjdf "  ))
+(= (length (list-matches " byy " "jshfd by sjkdf bjhsjdhfj")) 0)
+
   (doclist
     "\n\t\t"
     (doc "\n\t\t\t"
          (relative_filename
-           "files/1-s2.0-00221759
+           "files/1-s2.0-00221759"
+
+
+(cddr (scandir "/home/mbc/projects/bookmunger/tests"))
