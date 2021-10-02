@@ -29,3 +29,29 @@ FOREIGN KEY(book_id) REFERENCES book(book_id),
 FOREIGN KEY(tag_id) REFERENCES tag(tag_id)
 );
 
+
+INSERT INTO tag (tag_name) VALUES ('fiction');
+INSERT INTO tag (tag_name) VALUES ('nonfiction');
+INSERT INTO tag (tag_name) VALUES ('technical');
+INSERT INTO tag (tag_name) VALUES ('r');
+INSERT INTO tag (tag_name) VALUES ('statistics');
+INSERT INTO tag (tag_name) VALUES ('Bayes');
+INSERT INTO tag (tag_name) VALUES ('popgen');
+INSERT INTO tag (tag_name) VALUES ('gametheory');
+INSERT INTO tag (tag_name) VALUES ('bitcoin');
+INSERT INTO tag (tag_name) VALUES ('genetics');
+INSERT INTO tag (tag_name) VALUES ('work');
+INSERT INTO tag (tag_name) VALUES ('admixture');
+INSERT INTO tag (tag_name) VALUES ('DOE');
+INSERT INTO tag (tag_name) VALUES ('manuals');
+INSERT INTO tag (tag_name) VALUES ('programming');
+INSERT INTO tag (tag_name) VALUES ('math');
+INSERT INTO tag (tag_name) VALUES ('smalltalk');
+INSERT INTO tag (tag_name) VALUES ('history');
+INSERT INTO tag (tag_name) VALUES ('philosophy');
+INSERT INTO tag (tag_name) VALUES ('guile/guix');
+
+
+
+INSERT INTO author (auth_name) VALUES ('Peter LaPan');
+

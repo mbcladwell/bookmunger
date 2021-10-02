@@ -26,7 +26,8 @@
              (logging logger)
              (logging rotating-log)
              (logging port-log)
-	     (sxml simple)	     
+	     (sxml simple)
+	     (dbi dbi)
 	     )
 
 (define book-count 0)
@@ -39,7 +40,7 @@
 (define lib-file-name "a-lib.reflib")
 
 
-(define tags '((0 . "fiction")	(1 . "nonfiction")(2 . "technical")(3 . R)(4 . "statistics")(5 . "Bayes")(6 . "popgen")(7 . "gametheory")(9 . "bitcoin")(10 . "genetics")(11 . "work")(12 . "admixture")(13 . "DOE")(14 . "manuals")(15 . "programming")(16 . "math")(17 . "smalltalk")(18 . "history")(19 . "philosophy")))
+(define tags '((0 . "fiction")	(1 . "nonfiction")(2 . "technical")(3 . R)(4 . "statistics")(5 . "Bayes")(6 . "popgen")(7 . "gametheory")(9 . "bitcoin")(10 . "genetics")(11 . "work")(12 . "admixture")(13 . "DOE")(14 . "manuals")(15 . "programming")(16 . "math")(17 . "smalltalk")(18 . "history")(19 . "philosophy")(20 . "guile/guix")))
 
 
 (define (remove-zlib str)
@@ -78,9 +79,39 @@
   
 ;; (recurse-rm-zlib-from-filename  (cddr (scandir "/home/mbc/Downloads/lib")))
 
+(define (recurse-get-auth-ids auths ids)
+  (if (null? (cdr auths))
+      (let* ((a (dbi-query db-obj (string-append "select auth_id from author where auth_name LIKE '" (car auths) "'")))
+	     (b (dbi-get_row db-obj))
+	     (c (if b (assoc-ref b "auth_id")
+		    (begin
+		      (dbi-query db-obj (string-append "insert into author ('auth_name') values('"  (car auths) "')"))
+		      (dbi-query db-obj (string-append "select auth_id from author where auth_name LIKE '" (car auths) "'"))
+		      (assoc-ref (dbi-get_row db-obj) "auth_id"))))
+	     (dummy (set! ids (cons c ids))))
+	ids)
+       (let* ((a (dbi-query db-obj (string-append "select auth_id from author where auth_name LIKE '" (car auths) "'")))
+	     (b (dbi-get_row db-obj))
+	     (c (if b (assoc-ref b "auth_id")
+		    (begin
+		      (dbi-query db-obj (string-append "insert into author ('auth_name') values('"  (car auths) "')"))
+		      (dbi-query db-obj (string-append "select auth_id from author where auth_name LIKE '" (car auths) "'"))
+		      (assoc-ref (dbi-get_row db-obj) "auth_id"))))
+	     (dummy (set! ids (cons c ids))))
+	(get-auth-ids (cdr auths) ids))))
 
-(define (get-title-author-filename str)
-  ;; return a list '(title author new-file-name)
+  
+
+(define (get-author-ids arg)
+  ;;for a string of | delimitted authors get the ids
+  ;;add to database if needed
+  (let*((trimmed (string-trim-both arg))
+	(auth-lst (string-split trimmed #\|)))
+    (recurse-get-auth-ids auth-lst '())))
+
+
+(define (get-title-author-ids-filename str)
+  ;; return a list '(title author-ids new-file-name)
   ;; if "by" is in the title, I will not extract author
   (let* ((len (length (string->list str)))
 	 (dot (string-rindex str #\.)) ;;reverse search
@@ -88,72 +119,50 @@
 	 (len-pref (length (string->list pref)))
 	 (suf (substring str dot len)) ;; includes .
 	 (a (list-matches " by " pref))
-	 ;;test if a is length 1
-	 (start (match:start (car a)))
-	 (end (match:end (car a)))
+	 (b (list-matches " byy " pref))
+	 ;;test if a is length 1; if >1 by is in the title, use byy
+	 (c (if (= (length a) 1) a b))
+	 (start (match:start (car c)))
+	 (end (match:end (car c)))
 	 (title (substring pref 0 start))
-	 (author (substring pref end len-pref))
+	 (authors (substring pref end len-pref))
+	 (auth-ids (get-author-ids authors))
 	 (new-file-name (string-append title suf)) )
-  `(,title ,author ,new-file-name) ))
+  `(,title ,auth-ids ,new-file-name) ))
 
 ;;(get-title-author-filename "some book the name by Peter LaPan (zlib.org).epub")
 
 
-
-(define myfile (open-file (string-append lib-dir lib-file-name) "r"))
-
-(define a (xml->sxml myfile))
-
-;; ((*PI* xml "version=\"1.0\" encoding=\"UTF-8\"")
-;; (library...
-;;  (manage_target...)
-;;  (library_folder...)
-;;  (taglist...
-;;     (tag)
-;;     (tag))
-;;  (doclist...
-;;     (doc)
-;;     (doc)))))
-
-;;get each element of the xml
-;; I want to add to the doclist
+(define (add-auths-to-book book-id auth-ids)
+  ;;book-id is integer
+  ;;auth-ids is list of integers
+  (if (null? (cdr auth-ids))
+      (dbi-query db-obj (string-append "insert into book_author ('book_id','author_id') values(" (number->string book-id) "," (number->string (car auth-ids))  ")"))
+      (begin
+	(dbi-query db-obj (string-append "insert into book_author ('book_id','author_id') values(" (number->string book-id) "," (number->string (car auth-ids))  ")"))
+	(add-auths-to-book book-id (cdr auth-ids)))))
 
 
-
-(define pi (cadr a));; (*PI* xml "version=\"1.0\" encoding=\"UTF-8\"")
-;;(pretty-print (cadr a))
-(define manage-target (cadr (cdaddr a)));; (library "\n\t" (manage_target (@ (utf8 "false") (braces...
-;;(pretty-print (cadr (cdaddr a)))
-(define library-folder (cdddr a));;
-;;(pretty-print (cadddr (cdaddr a)))
-(define taglist (caddr (cddddr (caddr a))));;
-;;(pretty-print (caddr (cddddr (caddr a))))
-(define doclist (cdar (cddddr (cddddr (caddr a)))))
-;;(pretty-print (cdar (cddddr (cddddr (caddr a)))))
-;;(pretty-print (car (cddddr (cddddr (caddr a)))))
-
-;;print library
-;;(pretty-print  (caddr a))
+(define (add-tags-to-book book-id tag-ids)
+  ;;book-id is integer
+  ;;auth-ids is list of integers
+  (if (null? (cdr tag-ids))
+      (dbi-query db-obj (string-append "insert into book_tag ('book_id','tag_id') values(" (number->string book-id) "," (number->string (car tag-ids))  ")"))
+      (begin
+	(dbi-query db-obj (string-append "insert into book_tag ('book_id','tag_id') values(" (number->string book-id) "," (number->string (car tag-ids))  ")"))
+	(add-tags-to-book book-id (cdr tag-ids)))))
   
 
-;;(pretty-print (make-lib-file doclist))
+(define (add-book-to-db title auth-ids tag-ids filename)
+  ;;authors and tags must already be in db for assigment with ids
+  (let* ((a (dbi-query db-obj (string-append "insert into book ('title','file_name') values('" title "','" filename "')")))
+	 (b (dbi-query db-obj (string-append "select book_id from book where title LIKE '"title "'")))
+	 (book-id (assoc-ref (dbi-get_row db-obj) "book_id"))
+	 (c (add-auths-to-book book-id auth-ids))
+	 (d (add-tags-to-book book-id tag-ids))
+	 )
+  book-id  ))
 
-(define (recurse-make-tag lst new-lst)
-  (if (null? (cdr lst))
-      (begin
-	 (set! new-lst (cons (string-append "(tagged \"" (car lst) "\")\n\t\t\t") new-lst))
-	 (apply string-append new-lst))
-      (begin
-	(set! new-lst (cons (string-append "(tagged \"" (car lst) "\")\n\t\t\t") new-lst))
-	(recurse-make-tag (cdr lst) new-lst))))
-
-(define (make-tags args)
-  ;;args is a string of integers i.e. "4 5 6 7 8"
-  (let*((a (string-split args #\space))
-	(b (recurse-make-tag a '())))
-    b))
-
-;; (make-tags "4 5 6 7")
 
 (define (make-lib-backup)
  ;;lib-dir "/home/mbc/temp/lib/" ;; home of library XML
@@ -168,9 +177,17 @@
 
 
 
-(define (make-doc filename key tags title authors  )
-   `(doc "\n\t\t\t" (relative_filename ,(string-append "files/" filename)) "\n\t\t\t" (key ,key) "\n\t\t\t" (notes) "\n\t\t\t" ,@tags "\n\t\t\t" (bib_type "book") "\n\t\t\t" (bib_doi) "\n\t\t\t" (bib_title ,title) "\n\t\t\t" (bib_authors ,authors) "\n\t\t\t" (bib_journal) "\n\t\t\t" (bib_volume) "\n\t\t\t" (bib_number) "\n\t\t\t" (bib_pages) "\n\t\t\t" (bib_year) "\n\t\t")
-  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; database
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define db-obj (dbi-open "sqlite3" "/home/mbc/projects/bookmunger/db/book.db"))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 (define (main args)
@@ -178,7 +195,11 @@
   ;;       stash - put into xml file
   (let* ((start-time (current-time time-monotonic))
 	 (dummy2 (log-msg 'CRITICAL (string-append "Starting up at: "  (number->string (time-second start-time)))))
-	;; (a (get-summaries (cadr args) (caddr args)))
+	;; (results (recurse-get-author-ids "Peter LaPan|Joe Blow|Me Too"))
+	 
+	 (results (add-book-to-db "my-title3" '(1 2) '(1 2) "myfilename3"))
+
+ 	;; (a (get-summaries (cadr args) (caddr args)))
 	;; (dummy (map retrieve-article a))  ;;this does all the work; comment out last line for testing
 	 (stop-time (current-time time-monotonic))
 	 (elapsed-time (ceiling (/ (time-second (time-difference stop-time start-time)) 60)))
@@ -186,7 +207,7 @@
 	 (dummy4 (log-msg 'INFO (string-append "Book count: " (number->string  book-count) )))
 	 (dummy5 (shutdown-logging))
 	 )
-;;   (pretty-print b)))    
+  (pretty-print results))    
    ;; (pretty-print (string-append "Elapsed time: " (number->string  elapsed-time) " minutes." ))
-    #f
-    ))
+   ;; #f
+    )
