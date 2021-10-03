@@ -40,3 +40,7 @@
 
 
 (cddr (scandir "/home/mbc/projects/bookmunger/tests"))
+
+
+(euclidean-remainder 16 8)
+
