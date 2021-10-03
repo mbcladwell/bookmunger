@@ -35,8 +35,7 @@
 (define lib-dir "/home/mbc/temp/lib/") ;; home of library XML
 (define lib-backup-dir "/home/mbc/temp/lib/backups/") ;;
 (define on-deck-dir "/home/mbc/temp/lib/on-deck/")  ;; out of z-lib ready to have z-lib removed
-(define no-zlib-dir "/home/temp/mbc/lib/nozlib/")  ;; no z-lib, ready for title author extraction; regular books here
-(define dest-dir "/home/temp/lib/finalmod/") ;; final destination directory probably ~/syncd/library/files
+(define dest-dir "/home/mbc/temp/lib/finalmod/") ;; final destination directory probably ~/syncd/library/files
 (define lib-file-name "a-lib.reflib")
 
 
@@ -59,22 +58,22 @@
 
 ;;(remove-zlib "Gazelle by Ducornet Rikki (z-lib.org).epub")
 
-(define (rm-zlib-from-filename fname)
-  (let* ((pref on-deck-dir)
-	 (old (string-append pref fname))
-	 (new-pre (remove-zlib fname))
-	 (new (string-append pref new-pre)))
- ;;   (pretty-print new-pre)))
-  (rename-file old new )))
+;; (define (rm-zlib-from-filename fname)
+;;   (let* ((pref on-deck-dir)
+;; 	 (old (string-append pref fname))
+;; 	 (new-pre (remove-zlib fname))
+;; 	 (new (string-append pref new-pre)))
+;;  ;;   (pretty-print new-pre)))
+;;   (rename-file old new )))
 
 ;;(rm-zlib-from-filename "The First Man by Camus, Albert (z-lib.org).epub")
 
-(define (recurse-rm-zlib-from-filename lst)
-  (if (null? (cdr lst))
-      (rm-zlib-from-filename (car lst))
-      (begin
-	(rm-zlib-from-filename (car lst))
-	(recurse-rm-zlib-from-filename (cdr lst)))))
+;; (define (recurse-rm-zlib-from-filename lst)
+;;   (if (null? (cdr lst))
+;;       (rm-zlib-from-filename (car lst))
+;;       (begin
+;; 	(rm-zlib-from-filename (car lst))
+;; 	(recurse-rm-zlib-from-filename (cdr lst)))))
 
   
 ;; (recurse-rm-zlib-from-filename  (cddr (scandir "/home/mbc/Downloads/lib")))
@@ -98,7 +97,7 @@
 		      (dbi-query db-obj (string-append "select auth_id from author where auth_name LIKE '" (car auths) "'"))
 		      (assoc-ref (dbi-get_row db-obj) "auth_id"))))
 	     (dummy (set! ids (cons c ids))))
-	(get-auth-ids (cdr auths) ids))))
+	(recurse-get-auth-ids (cdr auths) ids))))
 
 
 
@@ -179,14 +178,27 @@
 	(command (string-append "cp " working-file-name " " backup-file-name)))
     (system command)))
 
+;;   (let* ((pref on-deck-dir)
+;; 	 (old (string-append pref fname))
+;; 	 (new-pre (remove-zlib fname))
+;; 	 (new (string-append pref new-pre)))
+;;  ;;   (pretty-print new-pre)))
+;;   (rename-file old new )))
 
 
 (define (process-file f)
-  (let* ((a (remove-zlib-from-filename f))
-	 (b (add-book-to-db (get-title-author-ids-filename a)))
+  (let* ((a (remove-zlib f))
+	 (b (get-title-author-ids-filename a))
+	 (title (car b))
+	 (auth-ids (cadr b))
+	 (filename (caddr b))
+	 (old-fname (string-append on-deck-dir f))
+	 (new-fname (string-append dest-dir filename))
+	 (c (add-book-to-db (car b) (cadr b) '(3 4) (caddr b)))
+	 (d (rename-file old-fname new-fname ))   
 	 )
-    )
-  )
+    
+#t  ))
 
 
 
@@ -207,20 +219,16 @@
   ;;       stash - put into xml file
   (let* ((start-time (current-time time-monotonic))
 	 (dummy2 (log-msg 'CRITICAL (string-append "Starting up at: "  (number->string (time-second start-time)))))
-	 (all-files (cddr on-deck-dir))
-	;; (results (recurse-get-author-ids "Peter LaPan|Joe Blow|Me Too"))
+	 (all-files (cddr (scandir on-deck-dir)))
 	 
-	 (results (add-book-to-db "my-title3" '(1 2) '(1 2) "myfilename3"))
-
- 	;; (a (get-summaries (cadr args) (caddr args)))
-	;; (dummy (map retrieve-article a))  ;;this does all the work; comment out last line for testing
-	 (stop-time (current-time time-monotonic))
+	 (results (process-file (car all-files)))
+ 	 (stop-time (current-time time-monotonic))
 	 (elapsed-time (ceiling (/ (time-second (time-difference stop-time start-time)) 60)))
 	 (dummy3 (log-msg 'INFO (string-append "Elapsed time: " (number->string   elapsed-time) " minutes.")))
 	 (dummy4 (log-msg 'INFO (string-append "Book count: " (number->string  book-count) )))
 	 (dummy5 (shutdown-logging))
 	 )
-  (pretty-print results))    
+  (pretty-print (car all-files)))    
    ;; (pretty-print (string-append "Elapsed time: " (number->string  elapsed-time) " minutes." ))
    ;; #f
     )
