@@ -2,7 +2,13 @@
 ;;-e main -s
 ;;!#
 
- (add-to-load-path "/home/mbc/projects/bookmunger")
+;; comma delimitted authors, first last names
+;; expecting Title Of Book by Fname M. Lname, Fname2 Lname2 (z-lib.org).epub
+;; expecting Swing By Me byy Fname M. Lname, Fname2 Lname2 (z-lib.org).epub
+
+
+(add-to-load-path "/home/mbc/projects/bookmunger")
+(load "/home/mbc/projects/bookmunger/curses.scm")
 
  ;;(add-to-load-path "/home/admin/projects")
 
@@ -28,6 +34,7 @@
              (logging port-log)
 	     (sxml simple)
 	     (dbi dbi)
+	     
 	     )
 
 (define book-count 0)
@@ -55,28 +62,6 @@
 	  (string-append new-name ext))
 	str)))
 
-
-;;(remove-zlib "Gazelle by Ducornet Rikki (z-lib.org).epub")
-
-;; (define (rm-zlib-from-filename fname)
-;;   (let* ((pref on-deck-dir)
-;; 	 (old (string-append pref fname))
-;; 	 (new-pre (remove-zlib fname))
-;; 	 (new (string-append pref new-pre)))
-;;  ;;   (pretty-print new-pre)))
-;;   (rename-file old new )))
-
-;;(rm-zlib-from-filename "The First Man by Camus, Albert (z-lib.org).epub")
-
-;; (define (recurse-rm-zlib-from-filename lst)
-;;   (if (null? (cdr lst))
-;;       (rm-zlib-from-filename (car lst))
-;;       (begin
-;; 	(rm-zlib-from-filename (car lst))
-;; 	(recurse-rm-zlib-from-filename (cdr lst)))))
-
-  
-;; (recurse-rm-zlib-from-filename  (cddr (scandir "/home/mbc/Downloads/lib")))
 
 (define (recurse-get-auth-ids auths ids)
   (if (null? (cdr auths))
@@ -178,12 +163,31 @@
 	(command (string-append "cp " working-file-name " " backup-file-name)))
     (system command)))
 
-;;   (let* ((pref on-deck-dir)
-;; 	 (old (string-append pref fname))
-;; 	 (new-pre (remove-zlib fname))
-;; 	 (new (string-append pref new-pre)))
-;;  ;;   (pretty-print new-pre)))
-;;   (rename-file old new )))
+
+(define (get-all-books-as-string lst out)
+  (if (null? (cdr lst))
+      (begin
+	(set! out (string-append (car lst) "\n" out))
+	out)
+      (begin
+	(set! out (string-append (car lst) "\n" out))
+	(get-all-books-as-string (cdr lst) out))))
+
+
+
+
+(define (get-all-tags-as-string)
+  (let* ( (a   (dbi-query db-obj "SELECT * FROM tag")  )
+	  (b "")
+	  (counter 0)
+	  (ret (dbi-get_row db-obj))
+	  (dummy (while (not (equal? ret #f))
+		   (begin
+		     (set! counter (+ counter 1))
+		     (set! b (string-append b  (number->string (assoc-ref ret "tag_id")) ":" (assoc-ref ret "tag_name") "  " (if (= 0 (euclidean-remainder counter 8)) "\n" "" )))
+		     (set! ret (dbi-get_row db-obj))))))
+	  b ))
+
 
 
 (define (process-file f)
@@ -195,7 +199,8 @@
 	 (old-fname (string-append on-deck-dir f))
 	 (new-fname (string-append dest-dir filename))
 	 (c (add-book-to-db (car b) (cadr b) '(3 4) (caddr b)))
-	 (d (rename-file old-fname new-fname ))   
+	 (d (rename-file old-fname new-fname ))
+	 (e (set! book-count (+ book-count 1)))
 	 )
     
 #t  ))
@@ -215,20 +220,20 @@
 
 
 (define (main args)
-  ;; args: mod - remove ' (zlib.org) from filename
-  ;;       stash - put into xml file
   (let* ((start-time (current-time time-monotonic))
 	 (dummy2 (log-msg 'CRITICAL (string-append "Starting up at: "  (number->string (time-second start-time)))))
 	 (all-files (cddr (scandir on-deck-dir)))
 	 
-	 (results (process-file (car all-files)))
+	 ;; (results (get-all-books-as-string  all-files ""))
+	 ;; (results (get-all-tags-as-string))
+	 (results (prompt-list))
  	 (stop-time (current-time time-monotonic))
 	 (elapsed-time (ceiling (/ (time-second (time-difference stop-time start-time)) 60)))
 	 (dummy3 (log-msg 'INFO (string-append "Elapsed time: " (number->string   elapsed-time) " minutes.")))
 	 (dummy4 (log-msg 'INFO (string-append "Book count: " (number->string  book-count) )))
 	 (dummy5 (shutdown-logging))
 	 )
-  (pretty-print (car all-files)))    
+  (pretty-print results))    
    ;; (pretty-print (string-append "Elapsed time: " (number->string  elapsed-time) " minutes." ))
    ;; #f
     )
