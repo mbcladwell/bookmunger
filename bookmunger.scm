@@ -1,6 +1,6 @@
-;;#! /gnu/store/q8brh7j5mwy0hbrly6hjb1m3wwndxqc8-guile-3.0.5/bin/guile \
-;;-e main -s
-;;!#
+#! /gnu/store/6l9rix46ydxyldf74dvpgr60rf5ily0c-guile-3.0.7/bin/guile \
+-e main -s
+!#
 
 ;; comma delimitted authors, first last names
 ;; expecting Title Of Book by Fname M. Lname, Fname2 Lname2 (z-lib.org).epub
@@ -8,7 +8,7 @@
 
 
 (add-to-load-path "/home/mbc/projects/bookmunger")
-(load "/home/mbc/projects/bookmunger/curses.scm")
+;;(load "/home/mbc/projects/bookmunger/curses.scm")
 
  ;;(add-to-load-path "/home/admin/projects")
 
@@ -26,7 +26,7 @@
 	     (ice-9 pretty-print)
 	     (ice-9 textual-ports)
 	     (ice-9 ftw) ;; file tree walk
-	     (ice-9 readline)
+	   ;;  (ice-9 readline)
 	     (bookmunger utilities)
 	     (bookmunger logging)   ;; logging is in guile-lib
              (logging logger)
@@ -34,7 +34,8 @@
              (logging port-log)
 	     (sxml simple)
 	     (dbi dbi)
-	     
+	     (ncurses curses)
+             (ncurses form)
 	     )
 
 (define book-count 0)
@@ -46,7 +47,7 @@
 (define lib-file-name "a-lib.reflib")
 
 
-(define tags '((0 . "fiction")	(1 . "nonfiction")(2 . "technical")(3 . R)(4 . "statistics")(5 . "Bayes")(6 . "popgen")(7 . "gametheory")(9 . "bitcoin")(10 . "genetics")(11 . "work")(12 . "admixture")(13 . "DOE")(14 . "manuals")(15 . "programming")(16 . "math")(17 . "smalltalk")(18 . "history")(19 . "philosophy")(20 . "guile/guix")))
+;; (define tags '((0 . "fiction")	(1 . "nonfiction")(2 . "technical")(3 . R)(4 . "statistics")(5 . "Bayes")(6 . "popgen")(7 . "gametheory")(9 . "bitcoin")(10 . "genetics")(11 . "work")(12 . "admixture")(13 . "DOE")(14 . "manuals")(15 . "programming")(16 . "math")(17 . "smalltalk")(18 . "history")(19 . "philosophy")(20 . "guile/guix")))
 
 
 (define (remove-zlib str)
@@ -101,18 +102,15 @@
 
 (define (get-title-author-ids-filename str)
   ;; return a list '(title author-ids new-file-name)
-  ;; if "by" is in the title, I will not extract author
+  ;; last "by" is the delimiter of title author
   (let* ((len (length (string->list str)))
 	 (dot (string-rindex str #\.)) ;;reverse search
 	 (pref (substring str 0  dot ))
 	 (len-pref (length (string->list pref)))
 	 (suf (substring str dot len)) ;; includes .
-	 (a (list-matches " by " pref))
-	 (b (list-matches " byy " pref))
-	 ;;test if a is length 1; if >1 by is in the title, use byy
-	 (c (if (= (length a) 1) a b))
-	 (start (match:start (car c)))
-	 (end (match:end (car c)))
+	 (a (last (list-matches " by " pref)))
+	 (start (match:start (car a)))
+	 (end (match:end (car a)))
 	 (title (substring pref 0 start))
 	 (authors (substring pref end len-pref))
 	 (auth-ids (get-author-ids authors))
@@ -213,6 +211,111 @@
 
 (define db-obj (dbi-open "sqlite3" "/home/mbc/projects/bookmunger/db/book.db"))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; forms
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define (print-tag-title win starty startx width str color)
+  (let ((length (string-length str)))
+
+    (attr-on! win color)
+    (addstr win str
+            #:y (- starty 1)
+            #:x (+ startx 3))
+
+    (addstr win
+	    (get-all-tags-as-string)
+            #:y (+ starty 1)
+            #:x  3)
+
+
+	    
+
+    (attr-off! win color)
+    (refresh stdscr)))
+
+(define stdscr (initscr))
+(define field (list
+               (new-field 1 30 6 1 0 0))) ;;new-field takes height, width startx, starty, the number of off-screen rows, and number of additional working buffers.
+              ;; (new-field 1 10 8 1 0 0)))
+(define my-form (new-form field)) ;;Creates a new form given a list that contains fields.
+(define xy (scale-form my-form)) ;; scale-form returns the a list of two elements: minimum size required for the subwindow of form
+(define rows (car xy))
+(define cols (cadr xy))
+
+(define my-form-win (newwin 20  ;;newwin height width starty startx
+                            120
+                            4
+                            4))
+
+(define (create-tagwin)
+  ((lambda (stdscr)			; Make a lambda proc that
+     (box stdscr (acs-vline) (acs-hline))	; Makes a box,
+     (refresh stdscr)			; Draws the window
+     stdscr)				; Returns the window to the caller
+
+   (newwin 20 120 0 0))) ; Create a window and apply it
+                                        ; to the lambda function
+
+
+
+(define (display-tag-options)
+(let loop ((ch (getch my-form-win)))
+  (if (not (eqv? ch (key-f 1)))
+      (cond
+       ((eqv? ch KEY_DOWN)
+        (begin
+          ;; Go to the end of the next field
+          (form-driver my-form REQ_NEXT_FIELD)
+          (form-driver my-form REQ_END_LINE)
+          (loop (getch my-form-win))))
+       ((eqv? ch KEY_UP)
+        (begin
+          ;; Go to the end of the previous field
+          (form-driver my-form REQ_PREV_FIELD)
+          (form-driver my-form REQ_END_LINE)
+          (loop (getch my-form-win))))
+       (else
+        (begin
+          ;; Print any normal character
+          (form-driver my-form ch)
+          (loop (getch my-form-win)))))))
+
+  )
+
+
+(define (init-form)
+(start-color!)
+(cbreak!)
+(noecho!)
+(keypad! stdscr #t)
+(init-pair! 1 COLOR_YELLOW COLOR_BLUE)
+(set-field-back! (first field) A_UNDERLINE)
+(field-opts-off! (first field) O_AUTOSKIP)
+;;(box stdscr 0 0)
+
+;;(set-field-back! (second field) A_UNDERLINE)
+;;(field-opts-off! (second field) O_AUTOSKIP)
+(keypad! my-form-win #t)
+
+(create-tagwin)
+(refresh stdscr)
+;; Set main window and subwindow
+;;(set-form-win! my-form my-form-win)
+;;(set-form-sub! my-form (derwin my-form-win rows cols 2 2))
+
+;; Print a border around the main window and print a title
+
+;;(print-tag-title my-form-win 1 0 (+ cols 14) "Available tags" (color-pair 1)) ;;print-tag-title win starty startx width str color
+
+;;(post-form my-form)
+;;(refresh my-form-win)
+
+(addstr stdscr "Use UP, DOWN arrow keys to switch between fields"
+        #:y (- (lines) 2) #:x 0)
+(refresh stdscr)
+  )
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -223,17 +326,20 @@
   (let* ((start-time (current-time time-monotonic))
 	 (dummy2 (log-msg 'CRITICAL (string-append "Starting up at: "  (number->string (time-second start-time)))))
 	 (all-files (cddr (scandir on-deck-dir)))
-	 
-	 ;; (results (get-all-books-as-string  all-files ""))
-	 ;; (results (get-all-tags-as-string))
-	 (results (prompt-list))
+	 (dummy (begin (init-form)
+		       (display-tag-options)
+		       (unpost-form my-form)
+		       (endwin)
+		       ))
+	
  	 (stop-time (current-time time-monotonic))
 	 (elapsed-time (ceiling (/ (time-second (time-difference stop-time start-time)) 60)))
 	 (dummy3 (log-msg 'INFO (string-append "Elapsed time: " (number->string   elapsed-time) " minutes.")))
 	 (dummy4 (log-msg 'INFO (string-append "Book count: " (number->string  book-count) )))
 	 (dummy5 (shutdown-logging))
 	 )
-  (pretty-print results))    
+#t)    
+  ;;(pretty-print results))    
    ;; (pretty-print (string-append "Elapsed time: " (number->string  elapsed-time) " minutes." ))
    ;; #f
     )

@@ -41,6 +41,7 @@
 
 (cddr (scandir "/home/mbc/projects/bookmunger/tests"))
 
+(last (list-matches " by " "thsu us one and here is by again"))
 
 (euclidean-remainder 16 8)
 
