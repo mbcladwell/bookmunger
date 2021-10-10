@@ -4,7 +4,6 @@
 
 ;; comma delimitted authors, first last names
 ;; expecting Title Of Book by Fname M. Lname, Fname2 Lname2 (z-lib.org).epub
-;; expecting Swing By Me byy Fname M. Lname, Fname2 Lname2 (z-lib.org).epub
 
 
 (add-to-load-path "/home/mbc/projects/bookmunger")
