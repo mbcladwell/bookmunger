@@ -34,6 +34,7 @@
 	     (sxml simple)
 	     (dbi dbi)
 	     (ncurses curses)
+	     (ncurses panel)
              (ncurses form)
 	     )
 
@@ -173,17 +174,23 @@
 
 
 
-(define (get-all-tags-as-string)
+(define (get-all-tags-as-list)
+  ;;input to create-tagwin
   (let* ( (a   (dbi-query db-obj "SELECT * FROM tag")  )
 	  (b "")
+	  (c '(""))
 	  (counter 0)
 	  (ret (dbi-get_row db-obj))
 	  (dummy (while (not (equal? ret #f))
 		   (begin
 		     (set! counter (+ counter 1))
-		     (set! b (string-append b  (number->string (assoc-ref ret "tag_id")) ":" (assoc-ref ret "tag_name") "  " (if (= 0 (euclidean-remainder counter 8)) "\n" "" )))
+		     (set! b (string-append b  (number->string (assoc-ref ret "tag_id")) ":" (assoc-ref ret "tag_name") "  "))
+		     (if (= 0 (euclidean-remainder counter 8))
+			 (begin
+			   (set! c (cons b c))
+			   (set! b "")) #t)		 
 		     (set! ret (dbi-get_row db-obj))))))
-	  b ))
+	  (reverse (cons "" (cons b c)) )))  ;;add the last few, then add "" because the while won't process the last element i.e. not recursion
 
 
 
@@ -211,108 +218,73 @@
 (define db-obj (dbi-open "sqlite3" "/home/mbc/projects/bookmunger/db/book.db"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; forms
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define (print-tag-title win starty startx width str color)
-  (let ((length (string-length str)))
-
-    (attr-on! win color)
-    (addstr win str
-            #:y (- starty 1)
-            #:x (+ startx 3))
-
-    (addstr win
-	    (get-all-tags-as-string)
-            #:y (+ starty 1)
-            #:x  3)
-
-
-	    
-
-    (attr-off! win color)
-    (refresh stdscr)))
-
-(define stdscr (initscr))
-(define field (list
-               (new-field 1 30 6 1 0 0))) ;;new-field takes height, width startx, starty, the number of off-screen rows, and number of additional working buffers.
-              ;; (new-field 1 10 8 1 0 0)))
-(define my-form (new-form field)) ;;Creates a new form given a list that contains fields.
-(define xy (scale-form my-form)) ;; scale-form returns the a list of two elements: minimum size required for the subwindow of form
-(define rows (car xy))
-(define cols (cadr xy))
-
-(define my-form-win (newwin 20  ;;newwin height width starty startx
-                            120
-                            4
-                            4))
-
-(define (create-tagwin)
-  ((lambda (stdscr)			; Make a lambda proc that
-     (box stdscr (acs-vline) (acs-hline))	; Makes a box,
-     (refresh stdscr)			; Draws the window
-     stdscr)				; Returns the window to the caller
-
-   (newwin 20 120 0 0))) ; Create a window and apply it
-                                        ; to the lambda function
+;; ncurses
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 
-(define (display-tag-options)
-(let loop ((ch (getch my-form-win)))
-  (if (not (eqv? ch (key-f 1)))
-      (cond
-       ((eqv? ch KEY_DOWN)
-        (begin
-          ;; Go to the end of the next field
-          (form-driver my-form REQ_NEXT_FIELD)
-          (form-driver my-form REQ_END_LINE)
-          (loop (getch my-form-win))))
-       ((eqv? ch KEY_UP)
-        (begin
-          ;; Go to the end of the previous field
-          (form-driver my-form REQ_PREV_FIELD)
-          (form-driver my-form REQ_END_LINE)
-          (loop (getch my-form-win))))
-       (else
-        (begin
-          ;; Print any normal character
-          (form-driver my-form ch)
-          (loop (getch my-form-win)))))))
+(define (create-tag-win width starty startx)
+  (let* ((tag-list (get-all-tags-as-list))
+	 (height (+ (length tag-list) 2))
+	 (win  (newwin height width starty startx))			; Make a lambda proc that
+	 (dummy  (box win (acs-vline) (acs-hline)))					; Makes a box,
+	 (dummy (addstr win "Tag options:" #:y 0  #:x 4))
+	 (y-loc 1)
+	 (dummy (while (not (null? (cdr tag-list)))
+		  (begin
+		    (addstr win (car tag-list) #:y y-loc  #:x 3)
+		    (set! y-loc (+ y-loc 1))
+		    (set! tag-list (cdr tag-list))))))
+    (begin
+      (refresh win)  ; Draws the window
+      win)))         ; Returns the window to the caller
 
-  )
+
+
+
+(define (create-form-win stdscr height width starty startx)
+  (let* ((my-fields (list (new-field 1 20 (+ starty 5) 10 0 0)))
+	 (dummy (set-field-back!  (car my-fields) A_UNDERLINE))
+	 (my-form (new-form my-fields))
+	 (dummy  (begin
+		   (post-form my-form )
+    		   ;;(dummy (set-form-sub! my-form (derwin my-win 30 120 0 0)))
+		   (addstr stdscr "Title: " #:y (+ starty 1)  #:x 7)
+		   (addstr stdscr "Author(s): " #:y (+ starty 3)  #:x 3)
+		   (addstr stdscr "Tag(s): " #:y (+ starty 5)  #:x 6)
+		   (addstr stdscr "q to quit " #:y (+ starty 9)  #:x 6)
+		   (addstr stdscr "Up/down arrow to navigate fields" #:y (+ starty 10)  #:x 6)
+		   (refresh stdscr))))
+    #t))       
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;field related 
+
 
 
 (define (init-form)
-(start-color!)
-(cbreak!)
-(noecho!)
-(keypad! stdscr #t)
-(init-pair! 1 COLOR_YELLOW COLOR_BLUE)
-(set-field-back! (first field) A_UNDERLINE)
-(field-opts-off! (first field) O_AUTOSKIP)
-;;(box stdscr 0 0)
+  (let* ((tag-list (get-all-tags-as-list))
+	 (height (+ (length tag-list) 2)) ;;how tall is the tags window?
 
-;;(set-field-back! (second field) A_UNDERLINE)
-;;(field-opts-off! (second field) O_AUTOSKIP)
-(keypad! my-form-win #t)
+	 (stdscr (initscr))
+	 (dummy (begin
+		  (start-color!)
+		  (cbreak!)
+		  (echo!)
+		  (keypad! stdscr #t)
+		  (create-form-win stdscr 10 100 (+ height 1) 0)
+		  (create-tag-win 120 0 0)
+		 ;; (refresh stdscr)
+		  ))
 
-(create-tagwin)
-(refresh stdscr)
-;; Set main window and subwindow
-;;(set-form-win! my-form my-form-win)
-;;(set-form-sub! my-form (derwin my-form-win rows cols 2 2))
-
-;; Print a border around the main window and print a title
-
-;;(print-tag-title my-form-win 1 0 (+ cols 14) "Available tags" (color-pair 1)) ;;print-tag-title win starty startx width str color
-
-;;(post-form my-form)
-;;(refresh my-form-win)
-
-(addstr stdscr "Use UP, DOWN arrow keys to switch between fields"
-        #:y (- (lines) 2) #:x 0)
-(refresh stdscr)
-  )
+	)        
+  (getch stdscr)			; Wait for user input 
+  ))                             ; End curses mode
+ 
 
 
 
@@ -326,8 +298,8 @@
 	 (dummy2 (log-msg 'CRITICAL (string-append "Starting up at: "  (number->string (time-second start-time)))))
 	 (all-files (cddr (scandir on-deck-dir)))
 	 (dummy (begin (init-form)
-		       (display-tag-options)
-		       (unpost-form my-form)
+		    ;;  (display-tag-options)
+		      ;;(unpost-form my-form)
 		       (endwin)
 		       ))
 	
@@ -338,7 +310,7 @@
 	 (dummy5 (shutdown-logging))
 	 )
 #t)    
-  ;;(pretty-print results))    
+;;  (pretty-print (get-all-tags-as-list)))    
    ;; (pretty-print (string-append "Elapsed time: " (number->string  elapsed-time) " minutes." ))
    ;; #f
     )
