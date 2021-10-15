@@ -1,5 +1,5 @@
 #! /gnu/store/6l9rix46ydxyldf74dvpgr60rf5ily0c-guile-3.0.7/bin/guile \
--e main -s
+-L /gnu/store/hiiljpxr855z0w1ail01phv7vwq40s38-guile-dbi-2.1.6/share/guile/site/2.2 -s
 !#
 
 ;; comma delimitted authors, first last names
@@ -50,19 +50,6 @@
 ;; (define tags '((0 . "fiction")	(1 . "nonfiction")(2 . "technical")(3 . R)(4 . "statistics")(5 . "Bayes")(6 . "popgen")(7 . "gametheory")(9 . "bitcoin")(10 . "genetics")(11 . "work")(12 . "admixture")(13 . "DOE")(14 . "manuals")(15 . "programming")(16 . "math")(17 . "smalltalk")(18 . "history")(19 . "philosophy")(20 . "guile/guix")))
 
 
-(define (remove-zlib str)
-  (let* ((dot (string-rindex str #\.)) ;;reverse search
-	 (name (substring str 0  dot ))
-	 (len (length (string->list name)))
-	 (a (substring name (- len 12) len))
-	 (is-it-zlib? (string= " (z-lib.org)" a)))
-    (if is-it-zlib?
-	(let* ((len2 (length (string->list str)))
-	       (ext (substring str dot len2))  ;;inlcudes the .
-	       (new-name (substring name 0 (- len 12))))
-	  (string-append new-name ext))
-	str)))
-
 
 (define (recurse-get-auth-ids auths ids)
   (if (null? (cdr auths))
@@ -100,17 +87,38 @@
     (recurse-get-auth-ids trimmed-auth-lst '())))
 
 
+
+(define (remove-zlib str)
+  (let* ((dot (string-rindex str #\.)) ;;reverse search
+	 (name (substring str 0  dot ))
+	 (len (length (string->list name)))
+	 
+	 (a (substring name (- len 12) len))
+	 (is-it-zlib? (string= " (z-lib.org)" a)))
+    (if is-it-zlib?
+	(let* ((len2 (length (string->list str)))
+	       (ext (substring str dot len2))  ;;inlcudes the .
+	       (new-name (substring name 0 (- len 12))))
+	  (string-append new-name ext))
+	str)))
+
+
 (define (get-title-author-ids-filename str)
   ;; return a list '(title author-ids new-file-name)
   ;; last "by" is the delimiter of title author
   (let* ((len (length (string->list str)))
 	 (dot (string-rindex str #\.)) ;;reverse search
 	 (pref (substring str 0  dot ))
-	 (len-pref (length (string->list pref)))
+	 (len-pref (length (string->list pref)))	 
 	 (suf (substring str dot len)) ;; includes .
-	 (a (last (list-matches " by " pref)))
-	 (start (match:start (car a)))
-	 (end (match:end (car a)))
+	 (a (substring pref (- len 12) len))
+	 (is-it-zlib? (string= " (z-lib.org)" a))
+	 (dummy )
+
+	 
+	 (b (last (list-matches " by " pref)))
+	 (start (match:start (car b)))
+	 (end (match:end (car b)))
 	 (title (substring pref 0 start))
 	 (authors (substring pref end len-pref))
 	 (auth-ids (get-author-ids authors))
@@ -243,7 +251,7 @@
 
 
 (define (create-form-win stdscr height width starty startx)
-  (let* ((my-fields (list (new-field 1 20 (+ starty 5) 10 0 0)))
+  (let* ((my-fields (list (new-field 1 20 (+ starty 5) 15 0 0)))
 	 (dummy (set-field-back!  (car my-fields) A_UNDERLINE))
 	 (my-form (new-form my-fields))
 	 (dummy  (begin
@@ -252,65 +260,67 @@
 		   (addstr stdscr "Title: " #:y (+ starty 1)  #:x 7)
 		   (addstr stdscr "Author(s): " #:y (+ starty 3)  #:x 3)
 		   (addstr stdscr "Tag(s): " #:y (+ starty 5)  #:x 6)
-		   (addstr stdscr "q to quit " #:y (+ starty 9)  #:x 6)
+		   (addstr stdscr "F1 to quit " #:y (+ starty 9)  #:x 6)
 		   (addstr stdscr "Up/down arrow to navigate fields" #:y (+ starty 10)  #:x 6)
-		   (refresh stdscr))))
-    #t))       
+		   (refresh stdscr)
+		   )))
+    my-form))       
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;field related 
+;;;;program
+
+
+(define all-files (cddr (scandir on-deck-dir)))
+(define tag-list (get-all-tags-as-list))
+(define height (+ (length tag-list) 2)) ;;how tall is the tags window?
+(define stdscr (initscr))
+	 
+(start-color!)
+(cbreak!)
+(noecho!)
+(keypad! stdscr #t)
+(define my-form (create-form-win stdscr 10 100 (+ height 1) 0))
+(define tag-win (create-tag-win 120 0 0))
+
+   (let* ((a (car all-files))
+ 	  (b (get-title-author-ids-filename a))
+	  )
+     (pretty-print  a))
+	  
+ 	 ;;(c (addstr stdscr (car b) #:y (+ starty 1)  #:x 15)))
 
 
 
-(define (init-form)
-  (let* ((tag-list (get-all-tags-as-list))
-	 (height (+ (length tag-list) 2)) ;;how tall is the tags window?
+;; Loop through to get user requests
+;; (let loop ((ch (getch stdscr)))
+;;   (let* ((a (car all-files))
+;; 	 (b (get-title-author-ids-filename a))
+;; 	 (c (addstr stdscr (car b) #:y (+ starty 1)  #:x 15)))
+	 
+;;   (if (not (eqv? ch (key-f 1)))
+;;       (cond
+;;        ((eqv? ch KEY_DOWN)
+;;         (begin
+;;           ;; Go to the end of the next field
+;;         ;;  (form-driver my-form REQ_NEXT_FIELD)
+;;         ;;  (form-driver my-form REQ_END_LINE)
+;;           (loop (getch stdscr))))
+;;        ((eqv? ch KEY_UP)
+;;         (begin
+;;           ;; Go to the end of the previous field
+;;         ;;  (form-driver my-form REQ_PREV_FIELD)
+;;         ;;  (form-driver my-form REQ_END_LINE)
+;;           (loop (getch stdscr))))
+;;        (else
+;;         (begin
+;;           ;; Print any normal character
+;;           (form-driver my-form ch)
+;;           (loop (getch stdscr))))))))
 
-	 (stdscr (initscr))
-	 (dummy (begin
-		  (start-color!)
-		  (cbreak!)
-		  (echo!)
-		  (keypad! stdscr #t)
-		  (create-form-win stdscr 10 100 (+ height 1) 0)
-		  (create-tag-win 120 0 0)
-		 ;; (refresh stdscr)
-		  ))
-
-	)        
-  (getch stdscr)			; Wait for user input 
-  ))                             ; End curses mode
- 
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-(define (main args)
-  (let* ((start-time (current-time time-monotonic))
-	 (dummy2 (log-msg 'CRITICAL (string-append "Starting up at: "  (number->string (time-second start-time)))))
-	 (all-files (cddr (scandir on-deck-dir)))
-	 (dummy (begin (init-form)
-		    ;;  (display-tag-options)
-		      ;;(unpost-form my-form)
-		       (endwin)
-		       ))
+;; (unpost-form my-form)
+;; (endwin)
 	
- 	 (stop-time (current-time time-monotonic))
-	 (elapsed-time (ceiling (/ (time-second (time-difference stop-time start-time)) 60)))
-	 (dummy3 (log-msg 'INFO (string-append "Elapsed time: " (number->string   elapsed-time) " minutes.")))
-	 (dummy4 (log-msg 'INFO (string-append "Book count: " (number->string  book-count) )))
-	 (dummy5 (shutdown-logging))
-	 )
-#t)    
-;;  (pretty-print (get-all-tags-as-list)))    
-   ;; (pretty-print (string-append "Elapsed time: " (number->string  elapsed-time) " minutes." ))
-   ;; #f
-    )
