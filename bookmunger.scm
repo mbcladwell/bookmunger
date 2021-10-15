@@ -7,6 +7,7 @@
 
 
 (add-to-load-path "/home/mbc/projects/bookmunger")
+(add-to-load-path "/gnu/store/va6l1ivclww22fi38w5h99pb4ndn99hg-guile-readline-3.0.2/share/guile/site/3.0")
 ;;(load "/home/mbc/projects/bookmunger/curses.scm")
 
  ;;(add-to-load-path "/home/admin/projects")
@@ -25,17 +26,15 @@
 	     (ice-9 pretty-print)
 	     (ice-9 textual-ports)
 	     (ice-9 ftw) ;; file tree walk
-	   ;;  (ice-9 readline)
+	     (ice-9 readline) ;;must sudo apt-get install libreadline-dev
+	     (ice-9 pretty-print)
 	     (bookmunger utilities)
 	     (bookmunger logging)   ;; logging is in guile-lib
              (logging logger)
              (logging rotating-log)
              (logging port-log)
 	     (sxml simple)
-	     (dbi dbi)
-	     (ncurses curses)
-	     (ncurses panel)
-             (ncurses form)
+	     (dbi dbi)	   
 	     )
 
 (define book-count 0)
@@ -43,12 +42,17 @@
 (define lib-dir "/home/mbc/temp/lib/") ;; home of library XML
 (define lib-backup-dir "/home/mbc/temp/lib/backups/") ;;
 (define on-deck-dir "/home/mbc/temp/lib/on-deck/")  ;; out of z-lib ready to have z-lib removed
-(define dest-dir "/home/mbc/temp/lib/finalmod/") ;; final destination directory probably ~/syncd/library/files
+(define dest-dir "/home/mbc/temp/lib/dest/") ;; final destination directory probably ~/syncd/library/files
 (define lib-file-name "a-lib.reflib")
 
 
 ;; (define tags '((0 . "fiction")	(1 . "nonfiction")(2 . "technical")(3 . R)(4 . "statistics")(5 . "Bayes")(6 . "popgen")(7 . "gametheory")(9 . "bitcoin")(10 . "genetics")(11 . "work")(12 . "admixture")(13 . "DOE")(14 . "manuals")(15 . "programming")(16 . "math")(17 . "smalltalk")(18 . "history")(19 . "philosophy")(20 . "guile/guix")))
 
+(define (move-file old new)
+  (let* ((old-fname (string-append on-deck-dir old))
+	 (new-fname (string-append dest-dir new))
+	 (command (string-append "mv '" old-fname "' '" new-fname"'")))
+   (system command )))
 
 
 (define (recurse-get-auth-ids auths ids)
@@ -88,44 +92,104 @@
 
 
 
-(define (remove-zlib str)
-  (let* ((dot (string-rindex str #\.)) ;;reverse search
-	 (name (substring str 0  dot ))
-	 (len (length (string->list name)))
+;; (define (remove-zlib str)
+;;   (let* ((dot (string-rindex str #\.)) ;;reverse search
+;; 	 (name (substring str 0  dot ))
+;; 	 (len (length (string->list name)))
 	 
-	 (a (substring name (- len 12) len))
-	 (is-it-zlib? (string= " (z-lib.org)" a)))
-    (if is-it-zlib?
-	(let* ((len2 (length (string->list str)))
-	       (ext (substring str dot len2))  ;;inlcudes the .
-	       (new-name (substring name 0 (- len 12))))
-	  (string-append new-name ext))
-	str)))
+;; 	 (a (substring name (- len 12) len))
+;; 	 (is-it-zlib? (string= " (z-lib.org)" a)))
+;;     (if is-it-zlib?
+;; 	(let* ((len2 (length (string->list str)))
+;; 	       (ext (substring str dot len2))  ;;inlcudes the .
+;; 	       (new-name (substring name 0 (- len 12))))
+;; 	  (string-append new-name ext))
+;; 	str)))
 
 
-(define (get-title-author-ids-filename str)
+(define (get-authors-as-string lst str)
+  ;; input is the processed list from get-authors-as-list
+  ;; str should be ""
+  (if (null? (cdr lst))
+      (begin
+	(set! str (string-append (car lst)))
+	str)       
+       (begin
+	 (set! str (string-append (car lst) ", "))
+	 (get-authors-as-string (cdr lst)))))
+
+
+(define (get-authors-as-list str)
+  ;;input is a string that may have multiple authors
+   (let*((trimmed (string-trim-both str))
+	(auth-lst (string-split trimmed #\,))
+	(auth-lst (map string-trim-both auth-lst))
+	(has-space? (> (length (string-split (car auth-lst) #\space)) 1))
+	;;if it has a space than it is first last, otherwise last, first
+	;;if last first must flip; assume only one author
+	(auth-lst (if has-space? auth-lst (list (string-append (cadr auth-lst) " " (car auth-lst)))))
+	)
+;;    (recurse-get-auth-ids trimmed-auth-lst '()))
+auth-lst
+
+  ))
+
+;; (apply string-append (get-authors-as-list "Smith Harold, Joe Blow, Me Too"))
+
+
+;; (define (get-title-authors-filename str)
+;;   ;; return a list '(title author-ids new-file-name)
+;;   ;; last "by" is the delimiter of title author
+;;   (let* ((len (length (string->list str)))
+;; 	 (dot (string-rindex str #\.)) ;;reverse search
+;; 	 (pref (substring str 0  dot ))
+;; 	 (len-pref (length (string->list pref)))	 
+;; 	 (ext (substring str dot len)) ;; includes .
+;; 	 (a (substring pref (- len-pref 12) len-pref))
+;; 	 (is-it-zlib? (string= " (z-lib.org)" a))
+;; 	 (pref (if is-it-zlib? (substring pref 0 (- len-pref 12)) str))	 
+;; 	 (b (last (list-matches " by " pref)))
+;; 	 (start (match:start  b))
+;; 	 (end (match:end  b))
+;; 	 (len-pref (length (string->list pref)));;it might have changed
+;; 	 (title (substring pref 0 start))
+;; 	 (authors (substring pref end len-pref))
+;; 	  (auth-lst (get-authors-as-list authors))
+;; 	  (new-file-name (string-append title ext))
+;; 	 )
+;; ;; (pretty-print  new-file-name)))
+    
+;;   `(,title ,auth-lst ,new-file-name) ))
+
+
+
+
+
+(define (get-title-authors-filename str)
   ;; return a list '(title author-ids new-file-name)
   ;; last "by" is the delimiter of title author
   (let* ((len (length (string->list str)))
 	 (dot (string-rindex str #\.)) ;;reverse search
 	 (pref (substring str 0  dot ))
 	 (len-pref (length (string->list pref)))	 
-	 (suf (substring str dot len)) ;; includes .
-	 (a (substring pref (- len 12) len))
+	 (ext (substring str dot len)) ;; includes .
+	 (a (substring pref (- len-pref 12) len-pref))
 	 (is-it-zlib? (string= " (z-lib.org)" a))
-	 (dummy )
-
-	 
+	 (pref (if is-it-zlib? (substring pref 0 (- len-pref 12)) str))	 
 	 (b (last (list-matches " by " pref)))
-	 (start (match:start (car b)))
-	 (end (match:end (car b)))
+	 (start (match:start  b))
+	 (end (match:end  b))
+	 (len-pref (length (string->list pref)));;it might have changed
 	 (title (substring pref 0 start))
 	 (authors (substring pref end len-pref))
-	 (auth-ids (get-author-ids authors))
-	 (new-file-name (string-append title suf)) )
-  `(,title ,auth-ids ,new-file-name) ))
+	  (auth-lst (get-authors-as-list authors))
+	  (new-file-name (string-append title ext))
+	 )
+;; (pretty-print  auth-lst)))
+    
+  `(,title ,auth-lst ,new-file-name) ))
 
-;;(get-title-author-filename "some book the name by Peter LaPan (zlib.org).epub")
+;;(get-title-authors-filename "The Genetic Lottery by Kathryn Paige Harden (z-lib.org).epub")
 
 
 (define (add-auths-to-book book-id auth-ids)
@@ -140,11 +204,11 @@
 
 (define (add-tags-to-book book-id tag-ids)
   ;;book-id is integer
-  ;;auth-ids is list of integers
+  ;;tag-ids is list of integers as strings
   (if (null? (cdr tag-ids))
-      (dbi-query db-obj (string-append "insert into book_tag ('book_id','tag_id') values(" (number->string book-id) "," (number->string (car tag-ids))  ")"))
+      (dbi-query db-obj (string-append "insert into book_tag ('book_id','tag_id') values(" (number->string book-id) ",'"  (car tag-ids)  "')"))
       (begin
-	(dbi-query db-obj (string-append "insert into book_tag ('book_id','tag_id') values(" (number->string book-id) "," (number->string (car tag-ids))  ")"))
+	(dbi-query db-obj (string-append "insert into book_tag ('book_id','tag_id') values(" (number->string book-id) ",'"  (car tag-ids)  "')"))
 	(add-tags-to-book book-id (cdr tag-ids)))))
   
 
@@ -200,23 +264,17 @@
 		     (set! ret (dbi-get_row db-obj))))))
 	  (reverse (cons "" (cons b c)) )))  ;;add the last few, then add "" because the while won't process the last element i.e. not recursion
 
-
-
-(define (process-file f)
-  (let* ((a (remove-zlib f))
-	 (b (get-title-author-ids-filename a))
-	 (title (car b))
-	 (auth-ids (cadr b))
-	 (filename (caddr b))
-	 (old-fname (string-append on-deck-dir f))
-	 (new-fname (string-append dest-dir filename))
-	 (c (add-book-to-db (car b) (cadr b) '(3 4) (caddr b)))
-	 (d (rename-file old-fname new-fname ))
-	 (e (set! book-count (+ book-count 1)))
-	 )
-    
-#t  ))
-
+(define (get-all-tags-as-string)
+  (let* ((sep "====================================================================================\n")
+	 (lst (cdr (get-all-tags-as-list)))
+	 (out sep)
+	 (dummy (while (not (string= (car lst) "") )		  
+		  (begin
+		    (set! out (string-append out "\n" (car lst)))
+		    (set! lst (cdr lst))
+		    ))))
+    (string-append "\n\n" out "\n\n" sep "\n")))
+	      
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -225,102 +283,34 @@
 
 (define db-obj (dbi-open "sqlite3" "/home/mbc/projects/bookmunger/db/book.db"))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ncurses
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-
-(define (create-tag-win width starty startx)
-  (let* ((tag-list (get-all-tags-as-list))
-	 (height (+ (length tag-list) 2))
-	 (win  (newwin height width starty startx))			; Make a lambda proc that
-	 (dummy  (box win (acs-vline) (acs-hline)))					; Makes a box,
-	 (dummy (addstr win "Tag options:" #:y 0  #:x 4))
-	 (y-loc 1)
-	 (dummy (while (not (null? (cdr tag-list)))
-		  (begin
-		    (addstr win (car tag-list) #:y y-loc  #:x 3)
-		    (set! y-loc (+ y-loc 1))
-		    (set! tag-list (cdr tag-list))))))
-    (begin
-      (refresh win)  ; Draws the window
-      win)))         ; Returns the window to the caller
-
-
-
-
-(define (create-form-win stdscr height width starty startx)
-  (let* ((my-fields (list (new-field 1 20 (+ starty 5) 15 0 0)))
-	 (dummy (set-field-back!  (car my-fields) A_UNDERLINE))
-	 (my-form (new-form my-fields))
-	 (dummy  (begin
-		   (post-form my-form )
-    		   ;;(dummy (set-form-sub! my-form (derwin my-win 30 120 0 0)))
-		   (addstr stdscr "Title: " #:y (+ starty 1)  #:x 7)
-		   (addstr stdscr "Author(s): " #:y (+ starty 3)  #:x 3)
-		   (addstr stdscr "Tag(s): " #:y (+ starty 5)  #:x 6)
-		   (addstr stdscr "F1 to quit " #:y (+ starty 9)  #:x 6)
-		   (addstr stdscr "Up/down arrow to navigate fields" #:y (+ starty 10)  #:x 6)
-		   (refresh stdscr)
-		   )))
-    my-form))       
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;program
 
 
 (define all-files (cddr (scandir on-deck-dir)))
-(define tag-list (get-all-tags-as-list))
-(define height (+ (length tag-list) 2)) ;;how tall is the tags window?
-(define stdscr (initscr))
 	 
-(start-color!)
-(cbreak!)
-(noecho!)
-(keypad! stdscr #t)
-(define my-form (create-form-win stdscr 10 100 (+ height 1) 0))
-(define tag-win (create-tag-win 120 0 0))
+(activate-readline)
+;;(display (get-all-tags-as-string)) ;;starts and ends with ""
 
-   (let* ((a (car all-files))
- 	  (b (get-title-author-ids-filename a))
-	  )
-     (pretty-print  a))
-	  
- 	 ;;(c (addstr stdscr (car b) #:y (+ starty 1)  #:x 15)))
+(let* ((old-fname (car all-files))
+       (out (get-all-tags-as-string))
+       (lst (get-title-authors-filename old-fname))       
+       (out (string-append out "Original File: " old-fname "\n"))
+       (title (car lst))
+       (auth-lst (cadr lst))
+       (auth-str (get-authors-as-string auth-lst "") )
+      
+       (new-fname (caddr lst))
+       (out (string-append out "Title: " title  "\n"))
+       (out (string-append out "Author(s): " auth-str  "\n"))
+       (out (string-append out "New Filename: " new-fname  "\n\n"))
+       (dummy (display out))
+       (tag-ids (list  (readline "Tag(s): ")))
+       (auth-ids (get-author-ids auth-str))
+       (c (add-book-to-db title auth-ids tag-ids new-fname))
+       (d (move-file old-fname new-fname))
+       (e (set! book-count (+ book-count 1))))
+;;  (pretty-print auth-lst))
+  #t  )
 
 
 
-;; Loop through to get user requests
-;; (let loop ((ch (getch stdscr)))
-;;   (let* ((a (car all-files))
-;; 	 (b (get-title-author-ids-filename a))
-;; 	 (c (addstr stdscr (car b) #:y (+ starty 1)  #:x 15)))
-	 
-;;   (if (not (eqv? ch (key-f 1)))
-;;       (cond
-;;        ((eqv? ch KEY_DOWN)
-;;         (begin
-;;           ;; Go to the end of the next field
-;;         ;;  (form-driver my-form REQ_NEXT_FIELD)
-;;         ;;  (form-driver my-form REQ_END_LINE)
-;;           (loop (getch stdscr))))
-;;        ((eqv? ch KEY_UP)
-;;         (begin
-;;           ;; Go to the end of the previous field
-;;         ;;  (form-driver my-form REQ_PREV_FIELD)
-;;         ;;  (form-driver my-form REQ_END_LINE)
-;;           (loop (getch stdscr))))
-;;        (else
-;;         (begin
-;;           ;; Print any normal character
-;;           (form-driver my-form ch)
-;;           (loop (getch stdscr))))))))
-
-;; (unpost-form my-form)
-;; (endwin)
-	
