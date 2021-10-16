@@ -8,9 +8,6 @@
 
 (add-to-load-path "/home/mbc/projects/bookmunger")
 (add-to-load-path "/gnu/store/va6l1ivclww22fi38w5h99pb4ndn99hg-guile-readline-3.0.2/share/guile/site/3.0")
-;;(load "/home/mbc/projects/bookmunger/curses.scm")
-
- ;;(add-to-load-path "/home/admin/projects")
 
 (use-modules 
 	     (srfi srfi-19)   ;; date time
@@ -39,14 +36,17 @@
 
 (define book-count 0)
 
-(define lib-dir "/home/mbc/temp/lib/") ;; home of library XML
+(define lib-dir "/home/mbc/projects/bookmunger/db/") ;; home of db
 (define lib-backup-dir "/home/mbc/temp/lib/backups/") ;;
 (define on-deck-dir "/home/mbc/temp/lib/on-deck/")  ;; out of z-lib ready to have z-lib removed
 (define dest-dir "/home/mbc/temp/lib/dest/") ;; final destination directory probably ~/syncd/library/files
-(define lib-file-name "a-lib.reflib")
+(define lib-file-name "book.db")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; database
+(define db-obj (dbi-open "sqlite3" (string-append lib-dir lib-file-name)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; (define tags '((0 . "fiction")	(1 . "nonfiction")(2 . "technical")(3 . R)(4 . "statistics")(5 . "Bayes")(6 . "popgen")(7 . "gametheory")(9 . "bitcoin")(10 . "genetics")(11 . "work")(12 . "admixture")(13 . "DOE")(14 . "manuals")(15 . "programming")(16 . "math")(17 . "smalltalk")(18 . "history")(19 . "philosophy")(20 . "guile/guix")))
 
 (define (move-file old new)
   (let* ((old-fname (string-append on-deck-dir old))
@@ -137,32 +137,6 @@ auth-lst
 ;; (apply string-append (get-authors-as-list "Smith Harold, Joe Blow, Me Too"))
 
 
-;; (define (get-title-authors-filename str)
-;;   ;; return a list '(title author-ids new-file-name)
-;;   ;; last "by" is the delimiter of title author
-;;   (let* ((len (length (string->list str)))
-;; 	 (dot (string-rindex str #\.)) ;;reverse search
-;; 	 (pref (substring str 0  dot ))
-;; 	 (len-pref (length (string->list pref)))	 
-;; 	 (ext (substring str dot len)) ;; includes .
-;; 	 (a (substring pref (- len-pref 12) len-pref))
-;; 	 (is-it-zlib? (string= " (z-lib.org)" a))
-;; 	 (pref (if is-it-zlib? (substring pref 0 (- len-pref 12)) str))	 
-;; 	 (b (last (list-matches " by " pref)))
-;; 	 (start (match:start  b))
-;; 	 (end (match:end  b))
-;; 	 (len-pref (length (string->list pref)));;it might have changed
-;; 	 (title (substring pref 0 start))
-;; 	 (authors (substring pref end len-pref))
-;; 	  (auth-lst (get-authors-as-list authors))
-;; 	  (new-file-name (string-append title ext))
-;; 	 )
-;; ;; (pretty-print  new-file-name)))
-    
-;;   `(,title ,auth-lst ,new-file-name) ))
-
-
-
 
 
 (define (get-title-authors-filename str)
@@ -218,7 +192,7 @@ auth-lst
 	 (b (dbi-query db-obj (string-append "select book_id from book where title LIKE '"title "'")))
 	 (book-id (assoc-ref (dbi-get_row db-obj) "book_id"))
 	 (c (add-auths-to-book book-id auth-ids))
-	 (d (add-tags-to-book book-id tag-ids))
+	 (d (add-tags-to-book book-id (string-split (car tag-ids) #\space)))
 	 )
   book-id  ))
 
@@ -276,12 +250,35 @@ auth-lst
     (string-append "\n\n" out "\n\n" sep "\n")))
 	      
 
+(define (process-file f)
+  (let* ((old-fname f)
+	 (out (get-all-tags-as-string))
+	 (lst (get-title-authors-filename old-fname))       
+	 (out (string-append out "Original File: " old-fname "\n"))
+	 (title (car lst))
+	 (auth-lst (cadr lst))
+	 (auth-str (get-authors-as-string auth-lst "") )
+	 
+	 (new-fname (caddr lst))
+	 (out (string-append out "Title: " title  "\n"))
+	 (out (string-append out "Author(s): " auth-str  "\n"))
+	 (out (string-append out "New Filename: " new-fname  "\n\n"))
+	 (dummy (display out))
+	 (tag-ids (list  (readline "Tag(s): ")))
+	 (auth-ids (get-author-ids auth-str))
+	 (c (add-book-to-db title auth-ids tag-ids new-fname))
+	 (d (move-file old-fname new-fname))
+	 (e (set! book-count (+ book-count 1))))
+;;  (pretty-print auth-lst))
+    #t))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; database
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define (process-all-files lst)
+ (if (null? (cdr lst))
+     (process-file (car lst))
+     (begin
+       (process-file (car lst))
+       (process-all-files (cdr lst)))))
 
-(define db-obj (dbi-open "sqlite3" "/home/mbc/projects/bookmunger/db/book.db"))
 
 
 
@@ -290,27 +287,6 @@ auth-lst
 	 
 (activate-readline)
 ;;(display (get-all-tags-as-string)) ;;starts and ends with ""
+(process-all-files  all-files)
 
-(let* ((old-fname (car all-files))
-       (out (get-all-tags-as-string))
-       (lst (get-title-authors-filename old-fname))       
-       (out (string-append out "Original File: " old-fname "\n"))
-       (title (car lst))
-       (auth-lst (cadr lst))
-       (auth-str (get-authors-as-string auth-lst "") )
-      
-       (new-fname (caddr lst))
-       (out (string-append out "Title: " title  "\n"))
-       (out (string-append out "Author(s): " auth-str  "\n"))
-       (out (string-append out "New Filename: " new-fname  "\n\n"))
-       (dummy (display out))
-       (tag-ids (list  (readline "Tag(s): ")))
-       (auth-ids (get-author-ids auth-str))
-       (c (add-book-to-db title auth-ids tag-ids new-fname))
-       (d (move-file old-fname new-fname))
-       (e (set! book-count (+ book-count 1))))
-;;  (pretty-print auth-lst))
-  #t  )
-
-
-
+  

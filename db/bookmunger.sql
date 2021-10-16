@@ -50,6 +50,7 @@ INSERT INTO tag (tag_name) VALUES ('smalltalk');
 INSERT INTO tag (tag_name) VALUES ('history');
 INSERT INTO tag (tag_name) VALUES ('philosophy');
 INSERT INTO tag (tag_name) VALUES ('guile/guix');
+INSERT INTO tag (tag_name) VALUES ('agriculture');
 
 
 
