@@ -40,6 +40,8 @@
 (define lib-backup-dir "/home/mbc/temp/lib/backups/") ;;
 (define on-deck-dir "/home/mbc/temp/lib/on-deck/")  ;; out of z-lib ready to have z-lib removed
 (define dest-dir "/home/mbc/temp/lib/dest/") ;; final destination directory probably ~/syncd/library/files
+(define readme "/home/mbc/temp/lib/readme/")
+(define doc-viewer "evince")
 (define lib-file-name "book.db")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -57,22 +59,22 @@
 
 (define (recurse-get-auth-ids auths ids)
   (if (null? (cdr auths))
-      (let* ((a (dbi-query db-obj (string-append "select auth_id from author where auth_name LIKE '" (car auths) "'")))
+      (let* ((a (dbi-query db-obj (string-append "select id from author where auth_name LIKE '" (car auths) "'")))
 	     (b (dbi-get_row db-obj))
-	     (c (if b (assoc-ref b "auth_id")
+	     (c (if b (assoc-ref b "id")
 		    (begin
 		      (dbi-query db-obj (string-append "insert into author ('auth_name') values('"  (car auths) "')"))
-		      (dbi-query db-obj (string-append "select auth_id from author where auth_name LIKE '" (car auths) "'"))
-		      (assoc-ref (dbi-get_row db-obj) "auth_id"))))
+		      (dbi-query db-obj (string-append "select id from author where auth_name LIKE '" (car auths) "'"))
+		      (assoc-ref (dbi-get_row db-obj) "id"))))
 	     (dummy (set! ids (cons c ids))))
 	ids)
-       (let* ((a (dbi-query db-obj (string-append "select auth_id from author where auth_name LIKE '" (car auths) "'")))
+       (let* ((a (dbi-query db-obj (string-append "select id from author where auth_name LIKE '" (car auths) "'")))
 	     (b (dbi-get_row db-obj))
-	     (c (if b (assoc-ref b "auth_id")
+	     (c (if b (assoc-ref b "id")
 		    (begin
 		      (dbi-query db-obj (string-append "insert into author ('auth_name') values('"  (car auths) "')"))
-		      (dbi-query db-obj (string-append "select auth_id from author where auth_name LIKE '" (car auths) "'"))
-		      (assoc-ref (dbi-get_row db-obj) "auth_id"))))
+		      (dbi-query db-obj (string-append "select id from author where auth_name LIKE '" (car auths) "'"))
+		      (assoc-ref (dbi-get_row db-obj) "id"))))
 	     (dummy (set! ids (cons c ids))))
 	(recurse-get-auth-ids (cdr auths) ids))))
 
@@ -116,7 +118,7 @@
 	str)       
        (begin
 	 (set! str (string-append (car lst) ", "))
-	 (get-authors-as-string (cdr lst)))))
+	 (get-authors-as-string (cdr lst) str))))
 
 
 (define (get-authors-as-list str)
@@ -172,7 +174,7 @@ auth-lst
   (if (null? (cdr auth-ids))
       (dbi-query db-obj (string-append "insert into book_author ('book_id','author_id') values(" (number->string book-id) "," (number->string (car auth-ids))  ")"))
       (begin
-	(dbi-query db-obj (string-append "insert into book_author ('book_id','author_id') values(" (number->string book-id) "," (number->string (car auth-ids))  ")"))
+	(dbi-query db-obj (string-append "insert into book_author ('book_id','author_id') values(" (number->string book-id) "," (number->string  (car auth-ids))  ")"))
 	(add-auths-to-book book-id (cdr auth-ids)))))
 
 
@@ -189,9 +191,9 @@ auth-lst
 (define (add-book-to-db title auth-ids tag-ids filename)
   ;;authors and tags must already be in db for assigment with ids
   (let* ((a (dbi-query db-obj (string-append "insert into book ('title','file_name') values('" title "','" filename "')")))
-	 (b (dbi-query db-obj (string-append "select book_id from book where title LIKE '"title "'")))
-	 (book-id (assoc-ref (dbi-get_row db-obj) "book_id"))
-	 (c (add-auths-to-book book-id auth-ids))
+	 (b (dbi-query db-obj (string-append "select id from book where title LIKE '" title "'")))
+	 (book-id (assoc-ref (dbi-get_row db-obj) "id"))
+	 (c (add-auths-to-book book-id  auth-ids))
 	 (d (add-tags-to-book book-id (string-split (car tag-ids) #\space)))
 	 )
   book-id  ))
@@ -230,7 +232,7 @@ auth-lst
 	  (dummy (while (not (equal? ret #f))
 		   (begin
 		     (set! counter (+ counter 1))
-		     (set! b (string-append b  (number->string (assoc-ref ret "tag_id")) ":" (assoc-ref ret "tag_name") "  "))
+		     (set! b (string-append b  (number->string (assoc-ref ret "id")) ":" (assoc-ref ret "tag_name") "  "))
 		     (if (= 0 (euclidean-remainder counter 8))
 			 (begin
 			   (set! c (cons b c))
@@ -269,7 +271,7 @@ auth-lst
 	 (c (add-book-to-db title auth-ids tag-ids new-fname))
 	 (d (move-file old-fname new-fname))
 	 (e (set! book-count (+ book-count 1))))
-;;  (pretty-print auth-lst))
+;;  (pretty-print auth-ids)))
     #t))
 
 (define (process-all-files lst)
@@ -280,13 +282,57 @@ auth-lst
        (process-all-files (cdr lst)))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; queries
 
 
 
 (define all-files (cddr (scandir on-deck-dir)))
 	 
 (activate-readline)
-;;(display (get-all-tags-as-string)) ;;starts and ends with ""
-(process-all-files  all-files)
+;;(process-all-files  all-files)
+
 
   
+  ;; (let* ( (a   (dbi-query db-obj "SELECT book.title, author.auth_name, tag.tag_name FROM book, author, tag, book_author, book_tag 
+  ;;                                 WHERE book_author.author_id=author.id AND book_author.book_id=book.id AND book_tag.tag_id=tag.id AND book_tag.book_id=book.id AND book.title LIKE '%revolution%'")  )
+  ;; 	  (b "")
+  ;; 	  (c '(""))
+  ;; 	  (counter 0)
+  ;; 	  (ret (dbi-get_row db-obj))
+  ;; 	  (dummy (while (not (equal? ret #f))
+  ;; 		   (begin
+  ;; 		     (set! counter (+ counter 1))
+  ;; 		     (display (string-append (assoc-ref ret "title") " | " (assoc-ref ret "auth_name") " | " (assoc-ref ret "tag_name") "\n"))
+  ;; 		     (set! c (cons (assoc-ref ret "title") c))
+  ;; 		     (set! ret (dbi-get_row db-obj))))))
+  ;;   #t)
+
+
+
+(define (query-by-title str)
+  ;;returns a list of id as integer
+  (let* ( (a   (dbi-query db-obj (string-append "SELECT book.id, book.title FROM book WHERE  book.title LIKE '%" str  "%'"))  )
+	  (lst '())
+	  (ret (dbi-get_row db-obj))
+	  (dummy (while (not (equal? ret #f))
+		   (begin		      
+		     (set! lst (cons (assoc-ref ret "id") lst))
+		     (set! ret (dbi-get_row db-obj))))))
+    lst))
+
+
+(define (display-results lst)
+  ;;list is a list of book IDs
+  (if (null? (cdr lst))
+      (begin
+	(dbi-query db-obj (string-append "SELECT book.id, book.title FROM book WHERE  book.id = '" (car lst) "'")
+		   (display (string-append (number->string (assoc-ref ret "id")) " | " (assoc-ref ret "title")  "\n"))
+	(car lst))
+      (begin
+	(display-results (cdr lst))))
+
+  
+  (display (string-append (number->string (assoc-ref ret "id")) " | " (assoc-ref ret "title")  "\n"))
+  )
+(query-by-title "revolution")
