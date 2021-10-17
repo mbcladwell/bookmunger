@@ -6,7 +6,7 @@ CREATE TABLE book(
 	 
 CREATE TABLE author(
          id INTEGER PRIMARY KEY ASC,
-         auth_name TEXT unique NOT NULL
+         author_name TEXT unique NOT NULL
 	 );
 	 
 CREATE TABLE tag(
@@ -53,6 +53,4 @@ INSERT INTO tag (tag_name) VALUES ('guile/guix');
 INSERT INTO tag (tag_name) VALUES ('agriculture');
 
 
-
-INSERT INTO author (auth_name) VALUES ('Peter LaPan');
 

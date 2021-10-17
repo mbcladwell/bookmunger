@@ -39,9 +39,6 @@
            "files/1-s2.0-00221759"
 
 
-(cddr (scandir "/home/mbc/projects/bookmunger/tests"))
+(cddr (scandir "/home/mbc/test/lib/on-deck"))
 
-(last (list-matches " by " "thsu us one and here is by again"))
-
-(euclidean-remainder 16 8)
 

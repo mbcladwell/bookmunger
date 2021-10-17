@@ -1,5 +1,5 @@
 #! /gnu/store/6l9rix46ydxyldf74dvpgr60rf5ily0c-guile-3.0.7/bin/guile \
--L /gnu/store/hiiljpxr855z0w1ail01phv7vwq40s38-guile-dbi-2.1.6/share/guile/site/2.2 -s
+-L /gnu/store/hiiljpxr855z0w1ail01phv7vwq40s38-guile-dbi-2.1.6/share/guile/site/2.2 -e main -s
 !#
 
 ;; comma delimitted authors, first last names
@@ -12,9 +12,7 @@
 (use-modules 
 	     (srfi srfi-19)   ;; date time
 	     (srfi srfi-1)  ;;list searching; delete-duplicates in list 
-	     (srfi srfi-9)  ;;records
 	     (ice-9 rdelim)
-	     (ice-9 i18n)   ;; internationalization
 	     (ice-9 popen)
 	     (ice-9 regex) ;;list-matches
 	     (ice-9 receive)
@@ -26,22 +24,26 @@
 	     (ice-9 readline) ;;must sudo apt-get install libreadline-dev
 	     (ice-9 pretty-print)
 	     (bookmunger utilities)
-	     (bookmunger logging)   ;; logging is in guile-lib
-             (logging logger)
-             (logging rotating-log)
-             (logging port-log)
-	     (sxml simple)
 	     (dbi dbi)	   
 	     )
 
 (define book-count 0)
 
+;; for testing
 (define lib-dir "/home/mbc/projects/bookmunger/db/") ;; home of db
 (define lib-backup-dir "/home/mbc/temp/lib/backups/") ;;
 (define on-deck-dir "/home/mbc/temp/lib/on-deck/")  ;; out of z-lib ready to have z-lib removed
 (define dest-dir "/home/mbc/temp/lib/dest/") ;; final destination directory probably ~/syncd/library/files
-(define readme "/home/mbc/temp/lib/readme/")
-(define doc-viewer "evince")
+(define readme-dir "/home/mbc/temp/lib/readme/")
+
+;; (define lib-dir "/home/mbc/syncd/library/db/") ;; home of db
+;; (define lib-backup-dir "/home/mbc/syncd/library/backup/") ;;
+;; (define on-deck-dir "/home/mbc/syncd/library/readme/")  ;; out of z-lib ready to have z-lib removed
+;; (define dest-dir "/home/mbc/syncd/library/files2/") ;; final destination directory probably ~/syncd/library/files
+;; (define readme-dir "/home/mbc/Documents/readme/")
+
+
+(define doc-viewer "ebook-viewer") ;;from Calibre
 (define lib-file-name "book.db")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -58,6 +60,7 @@
 
 
 (define (recurse-get-auth-ids auths ids)
+  ;;
   (if (null? (cdr auths))
       (let* ((a (dbi-query db-obj (string-append "select id from author where auth_name LIKE '" (car auths) "'")))
 	     (b (dbi-get_row db-obj))
@@ -93,36 +96,22 @@
     (recurse-get-auth-ids trimmed-auth-lst '())))
 
 
-
-;; (define (remove-zlib str)
-;;   (let* ((dot (string-rindex str #\.)) ;;reverse search
-;; 	 (name (substring str 0  dot ))
-;; 	 (len (length (string->list name)))
-	 
-;; 	 (a (substring name (- len 12) len))
-;; 	 (is-it-zlib? (string= " (z-lib.org)" a)))
-;;     (if is-it-zlib?
-;; 	(let* ((len2 (length (string->list str)))
-;; 	       (ext (substring str dot len2))  ;;inlcudes the .
-;; 	       (new-name (substring name 0 (- len 12))))
-;; 	  (string-append new-name ext))
-;; 	str)))
-
-
 (define (get-authors-as-string lst str)
   ;; input is the processed list from get-authors-as-list
   ;; str should be ""
   (if (null? (cdr lst))
       (begin
-	(set! str (string-append (car lst)))
+	(set! str (string-append str (car lst) ))
 	str)       
        (begin
-	 (set! str (string-append (car lst) ", "))
+	 (set! str (string-append str (car lst) ", " ))
 	 (get-authors-as-string (cdr lst) str))))
 
 
 (define (get-authors-as-list str)
   ;;input is a string that may have multiple authors
+  ;;output is a single string for display only
+  ;;use the list of authors for adding to database
    (let*((trimmed (string-trim-both str))
 	(auth-lst (string-split trimmed #\,))
 	(auth-lst (map string-trim-both auth-lst))
@@ -136,7 +125,7 @@ auth-lst
 
   ))
 
-;; (apply string-append (get-authors-as-list "Smith Harold, Joe Blow, Me Too"))
+;; (get-authors-as-string (get-authors-as-list "Smith M. Harold, Joe Blow, Me Too") "")
 
 
 
@@ -241,7 +230,7 @@ auth-lst
 	  (reverse (cons "" (cons b c)) )))  ;;add the last few, then add "" because the while won't process the last element i.e. not recursion
 
 (define (get-all-tags-as-string)
-  (let* ((sep "====================================================================================\n")
+  (let* ((sep "==========================================================================================\n")
 	 (lst (cdr (get-all-tags-as-list)))
 	 (out sep)
 	 (dummy (while (not (string= (car lst) "") )		  
@@ -271,42 +260,20 @@ auth-lst
 	 (c (add-book-to-db title auth-ids tag-ids new-fname))
 	 (d (move-file old-fname new-fname))
 	 (e (set! book-count (+ book-count 1))))
-;;  (pretty-print auth-ids)))
     #t))
 
 (define (process-all-files lst)
- (if (null? (cdr lst))
-     (process-file (car lst))
-     (begin
-       (process-file (car lst))
-       (process-all-files (cdr lst)))))
-
+  (begin
+    (make-lib-backup)
+    (if (null? (cdr lst))
+	(process-file (car lst))
+	(begin
+	  (process-file (car lst))
+	  (process-all-files (cdr lst))))))
+  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; queries
-
-
-
-(define all-files (cddr (scandir on-deck-dir)))
-	 
-(activate-readline)
-;;(process-all-files  all-files)
-
-
-  
-  ;; (let* ( (a   (dbi-query db-obj "SELECT book.title, author.auth_name, tag.tag_name FROM book, author, tag, book_author, book_tag 
-  ;;                                 WHERE book_author.author_id=author.id AND book_author.book_id=book.id AND book_tag.tag_id=tag.id AND book_tag.book_id=book.id AND book.title LIKE '%revolution%'")  )
-  ;; 	  (b "")
-  ;; 	  (c '(""))
-  ;; 	  (counter 0)
-  ;; 	  (ret (dbi-get_row db-obj))
-  ;; 	  (dummy (while (not (equal? ret #f))
-  ;; 		   (begin
-  ;; 		     (set! counter (+ counter 1))
-  ;; 		     (display (string-append (assoc-ref ret "title") " | " (assoc-ref ret "auth_name") " | " (assoc-ref ret "tag_name") "\n"))
-  ;; 		     (set! c (cons (assoc-ref ret "title") c))
-  ;; 		     (set! ret (dbi-get_row db-obj))))))
-  ;;   #t)
 
 
 
@@ -327,10 +294,11 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
 
 (define (display-results lst)
   ;;list is a list of book IDs
+  ;;book.id is what will have to be typed to view/move a book
   (if (null? (cdr lst))
       (let* ((dummy (dbi-query db-obj (string-append "SELECT book.id, book.title FROM book WHERE  book.id = '" (number->string (car lst)) "'")))
 	     (ret (dbi-get_row db-obj))			 
-	     (dummy (display (string-append (number->string (assoc-ref ret "id")) " | " (assoc-ref ret "title")  "\n")))
+	     (dummy (display (string-append (number->string (assoc-ref ret "id")) " | " (assoc-ref ret "title")  "\n\n")))
 	     )
 	#t)
       (let* ((dummy (dbi-query db-obj (string-append "SELECT book.id, book.title FROM book WHERE  book.id = '" (number->string (car lst)) "'")))
@@ -341,5 +309,49 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
       
 	))
 
-   
-(display-results (query-all-fields "dis"))
+(define (copy-book-to-readme book-id)
+  ;;book-id is integer
+  (let*((dummy (dbi-query db-obj (string-append "SELECT book.file_name FROM book WHERE  book.id = '" (number->string book-id) "'")))
+	(ret (dbi-get_row db-obj))
+	(file-name (assoc-ref ret "file_name"))
+	(lib-file-name (string-append dest-dir file-name ))	
+	(readme-file-name (string-append readme-dir file-name ))
+	(command (string-append "cp '" lib-file-name "' '" readme-file-name "'")))
+    (system command)))
+
+(define (view-book book-id)
+  ;;viewing the book in the library (dest-dir)
+  (let*((dummy (dbi-query db-obj (string-append "SELECT book.file_name FROM book WHERE  book.id = '" (number->string book-id) "'")))
+	(ret (dbi-get_row db-obj))
+	(file-name (assoc-ref ret "file_name"))
+	(lib-file-name (string-append dest-dir file-name ))	
+	(command (string-append doc-viewer " '" lib-file-name "'")))
+    (system command)))
+
+
+
+(define (main args)
+  (let* ((dummy (activate-readline))
+	 (all-files (cddr (scandir on-deck-dir)))
+	 (files-on-deck? (if (= (length all-files) 0) #f #t ))
+	 (dummy (if files-on-deck? (begin
+				     (process-all-files all-files)
+				     (display (string-append "\nProcessed " (number->string book-count) " books.\n\n")))))	 
+	 (dummy (display (string-append (get-all-tags-as-string) "\nCtrl-z to exit\n\n")))
+	 (find-me (readline "Query: "))
+	 (lst (query-all-fields find-me))
+	 (dummy (display-results lst))
+	 (what-do  (readline "(o)pen or (r)etrieve (id): "))
+	 (a (string-split what-do #\space))
+	 (action (car a))
+	 (id (string->number (cadr a)))
+	 (b (if (string= action "o")  (view-book id)))
+	 (c (if (string= action "r") (copy-book-to-readme id))))
+    (pretty-print a)))
+
+
+
+
+
+
+
