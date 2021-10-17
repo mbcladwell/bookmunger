@@ -310,9 +310,12 @@ auth-lst
 
 
 
-(define (query-by-title str)
+(define (query-all-fields str)
   ;;returns a list of id as integer
-  (let* ( (a   (dbi-query db-obj (string-append "SELECT book.id, book.title FROM book WHERE  book.title LIKE '%" str  "%'"))  )
+  (let* ( (a   (dbi-query db-obj (string-append "SELECT book.id, book.title FROM book WHERE  book.title LIKE '%" str  "%' UNION
+                                                 SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_tag WHERE book_author.author_id=author.id AND book_author.book_id=book.id AND book_tag.tag_id=tag.id AND book_tag.book_id=book.id AND author.auth_name LIKE '%" str  "%' UNION
+SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_tag WHERE book_author.author_id=author.id AND book_author.book_id=book.id AND book_tag.tag_id=tag.id AND book_tag.book_id=book.id AND tag.tag_name LIKE '%" str  "%'"
+						))  )
 	  (lst '())
 	  (ret (dbi-get_row db-obj))
 	  (dummy (while (not (equal? ret #f))
@@ -325,14 +328,18 @@ auth-lst
 (define (display-results lst)
   ;;list is a list of book IDs
   (if (null? (cdr lst))
-      (begin
-	(dbi-query db-obj (string-append "SELECT book.id, book.title FROM book WHERE  book.id = '" (car lst) "'")
-		   (display (string-append (number->string (assoc-ref ret "id")) " | " (assoc-ref ret "title")  "\n"))
-	(car lst))
-      (begin
-	(display-results (cdr lst))))
+      (let* ((dummy (dbi-query db-obj (string-append "SELECT book.id, book.title FROM book WHERE  book.id = '" (number->string (car lst)) "'")))
+	     (ret (dbi-get_row db-obj))			 
+	     (dummy (display (string-append (number->string (assoc-ref ret "id")) " | " (assoc-ref ret "title")  "\n")))
+	     )
+	#t)
+      (let* ((dummy (dbi-query db-obj (string-append "SELECT book.id, book.title FROM book WHERE  book.id = '" (number->string (car lst)) "'")))
+	     (ret (dbi-get_row db-obj))			 
+	     (dummy (display (string-append (number->string (assoc-ref ret "id")) " | " (assoc-ref ret "title")  "\n")))
+	     )
+	(display-results (cdr lst)))
+      
+	))
 
-  
-  (display (string-append (number->string (assoc-ref ret "id")) " | " (assoc-ref ret "title")  "\n"))
-  )
-(query-by-title "revolution")
+   
+(display-results (query-all-fields "dis"))
