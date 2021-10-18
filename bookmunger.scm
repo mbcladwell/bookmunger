@@ -59,46 +59,53 @@
    (system command )))
 
 
+
 (define (recurse-get-auth-ids auths ids)
-  ;;
+  ;;recurse for get-auth-ids
+  ;;first check if author already in db, create if not
   (if (null? (cdr auths))
-      (let* ((a (dbi-query db-obj (string-append "select id from author where auth_name LIKE '" (car auths) "'")))
+      (let* ((a (dbi-query db-obj (string-append "select id from author where author_name LIKE '" (car auths) "'")))
 	     (b (dbi-get_row db-obj))
 	     (c (if b (assoc-ref b "id")
 		    (begin
-		      (dbi-query db-obj (string-append "insert into author ('auth_name') values('"  (car auths) "')"))
-		      (dbi-query db-obj (string-append "select id from author where auth_name LIKE '" (car auths) "'"))
+		      (dbi-query db-obj (string-append "insert into author ('author_name') values('"  (car auths) "')"))
+		      (dbi-query db-obj (string-append "select id from author where author_name LIKE '" (car auths) "'"))
 		      (assoc-ref (dbi-get_row db-obj) "id"))))
 	     (dummy (set! ids (cons c ids))))
 	ids)
-       (let* ((a (dbi-query db-obj (string-append "select id from author where auth_name LIKE '" (car auths) "'")))
+       (let* ((a (dbi-query db-obj (string-append "select id from author where author_name LIKE '" (car auths) "'")))
 	     (b (dbi-get_row db-obj))
 	     (c (if b (assoc-ref b "id")
 		    (begin
-		      (dbi-query db-obj (string-append "insert into author ('auth_name') values('"  (car auths) "')"))
-		      (dbi-query db-obj (string-append "select id from author where auth_name LIKE '" (car auths) "'"))
+		      (dbi-query db-obj (string-append "insert into author ('author_name') values('"  (car auths) "')"))
+		      (dbi-query db-obj (string-append "select id from author where author_name LIKE '" (car auths) "'"))
 		      (assoc-ref (dbi-get_row db-obj) "id"))))
 	     (dummy (set! ids (cons c ids))))
 	(recurse-get-auth-ids (cdr auths) ids))))
 
 
-
+;; (recurse-get-auth-ids '("Howard Rheingold" "Joe Blow") '())
 
 
 (define (get-author-ids arg)
   ;;for a string of , delimitted authors get the ids
-  ;;beware of last, first authors - must be edited
+  ;;all authors must be First M. Last before getting here
   ;;add to database if needed
   (let*((trimmed (string-trim-both arg))
 	(auth-lst (string-split trimmed #\,))
 	(trimmed-auth-lst (map string-trim-both auth-lst))
 	)
+   ;; trimmed-auth-lst))
     (recurse-get-auth-ids trimmed-auth-lst '())))
 
+
+;;(get-author-ids "Howard Rheingold, Joe Blow")
 
 (define (get-authors-as-string lst str)
   ;; input is the processed list from get-authors-as-list
   ;; str should be ""
+  ;;output is a single string for display or input into get-author-ids
+  ;;use the list of authors for adding to database
   (if (null? (cdr lst))
       (begin
 	(set! str (string-append str (car lst) ))
@@ -108,30 +115,57 @@
 	 (get-authors-as-string (cdr lst) str))))
 
 
+;;will handle the following author spellings
+;; first last
+;; first last and first last 
+;; first last, first last, ... , first last
+;; first m. last, ...
+;; last, first
+;; last, first and last, first
+;;  
+
 (define (get-authors-as-list str)
   ;;input is a string that may have multiple authors
-  ;;output is a single string for display only
-  ;;use the list of authors for adding to database
-   (let*((trimmed (string-trim-both str))
-	(auth-lst (string-split trimmed #\,))
-	(auth-lst (map string-trim-both auth-lst))
-	(has-space? (> (length (string-split (car auth-lst) #\space)) 1))
-	;;if it has a space than it is first last, otherwise last, first
-	;;if last first must flip; assume only one author
-	(auth-lst (if has-space? auth-lst (list (string-append (cadr auth-lst) " " (car auth-lst)))))
-	)
-;;    (recurse-get-auth-ids trimmed-auth-lst '()))
-auth-lst
+  ;;output is a list with each element as first (m) last
+  (let* (
+	(str (string-trim-both str))
+	(len-str (string-length str))
+	;;if has and then split and check if has comma and reverse
+	(and-start (string-contains-ci str " and "))
+	(auth-lst (if and-start
+		      (let* (
+			     (str (string-trim-both str))
+			     (len-str (string-length str))
+			     (auth1 (substring str 0 and-start))
+			     (auth2 (substring str (+ and-start 5) len-str))
+			     ;;if auth1 has a comma it is last, first - reverse
+			     (has-comma? (> (length (string-split auth1 #\,)) 1)))
+			(if has-comma?
+			    (let* ((auth1-split (string-split auth1 #\,))
+			     	   (auth1-lname (car auth1-split))
+			      	   (auth1-fname (string-trim-both (cadr auth1-split)))
+			      	   (auth2-split (string-split auth2 #\,))
+			      	   (auth2-lname (car auth2-split))
+			      	   (auth2-fname (string-trim-both (cadr auth2-split)))
+			      	   (auth1rev (string-append auth1-fname " " auth1-lname))
+			      	   (auth2rev (string-append auth2-fname " " auth2-lname)))
+			      (list auth1rev auth2rev))
+			    (list auth1 auth2)))			     
+		      ;; no and
+		      (let*(
+			     (auth-str (string-split str #\,))
+			     (auth-str (map string-trim-both auth-str))
+			     (has-space? (> (length (string-split (car auth-str) #\space)) 1)))
+			;;if it has a space than it is first last, otherwise last, first
+			;;if last first must flip			    
+			(if has-space? auth-str (list (string-append (cadr auth-str) " " (car auth-str))))))))	
+     auth-lst))
 
-  ))
-
-;; (get-authors-as-string (get-authors-as-list "Smith M. Harold, Joe Blow, Me Too") "")
-
-
+;;(get-authors-as-list "Smith, Joe M. and Blow, Bill")
 
 
 (define (get-title-authors-filename str)
-  ;; return a list '(title author-ids new-file-name)
+  ;; return a list '(title '(authors) new-file-name)
   ;; last "by" is the delimiter of title author
   (let* ((len (length (string->list str)))
 	 (dot (string-rindex str #\.)) ;;reverse search
@@ -147,7 +181,7 @@ auth-lst
 	 (len-pref (length (string->list pref)));;it might have changed
 	 (title (substring pref 0 start))
 	 (authors (substring pref end len-pref))
-	  (auth-lst (get-authors-as-list authors))
+	  (auth-lst (get-authors-as-list authors)) ;;gets a list '("Fname1 Lname1" "Fname2 Lname2")
 	  (new-file-name (string-append title ext))
 	 )
 ;; (pretty-print  auth-lst)))
@@ -244,7 +278,7 @@ auth-lst
 (define (process-file f)
   (let* ((old-fname f)
 	 (out (get-all-tags-as-string))
-	 (lst (get-title-authors-filename old-fname))       
+	 (lst (get-title-authors-filename old-fname))  ;;authos is  a list '("Fname1 Lname1" "Fname2 Lname2")      
 	 (out (string-append out "Original File: " old-fname "\n"))
 	 (title (car lst))
 	 (auth-lst (cadr lst))
