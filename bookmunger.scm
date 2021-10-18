@@ -30,17 +30,17 @@
 (define book-count 0)
 
 ;; for testing
-(define lib-dir "/home/mbc/projects/bookmunger/db/") ;; home of db
-(define lib-backup-dir "/home/mbc/temp/lib/backups/") ;;
-(define on-deck-dir "/home/mbc/temp/lib/on-deck/")  ;; out of z-lib ready to have z-lib removed
-(define dest-dir "/home/mbc/temp/lib/dest/") ;; final destination directory probably ~/syncd/library/files
-(define readme-dir "/home/mbc/temp/lib/readme/")
+;; (define lib-dir "/home/mbc/projects/bookmunger/db/") ;; home of db
+;; (define lib-backup-dir "/home/mbc/temp/lib/backups/") ;;
+;; (define on-deck-dir "/home/mbc/temp/lib/on-deck/")  ;; out of z-lib ready to have z-lib removed
+;; (define dest-dir "/home/mbc/temp/lib/dest/") ;; final destination directory probably ~/syncd/library/files
+;; (define readme-dir "/home/mbc/temp/lib/readme/")
 
-;; (define lib-dir "/home/mbc/syncd/library/db/") ;; home of db
-;; (define lib-backup-dir "/home/mbc/syncd/library/backup/") ;;
-;; (define on-deck-dir "/home/mbc/syncd/library/readme/")  ;; out of z-lib ready to have z-lib removed
-;; (define dest-dir "/home/mbc/syncd/library/files2/") ;; final destination directory probably ~/syncd/library/files
-;; (define readme-dir "/home/mbc/Documents/readme/")
+(define lib-dir "/home/mbc/syncd/library/db/") ;; home of db
+(define lib-backup-dir "/home/mbc/syncd/library/backup/") ;;
+(define on-deck-dir "/home/mbc/syncd/library/readme/")  ;; out of z-lib ready to have z-lib removed
+(define dest-dir "/home/mbc/syncd/library/files2/") ;; final destination directory probably ~/syncd/library/files
+(define readme-dir "/home/mbc/Documents/readme/")
 
 
 (define doc-viewer "ebook-viewer") ;;from Calibre
@@ -50,6 +50,10 @@
 ;; database
 (define db-obj (dbi-open "sqlite3" (string-append lib-dir lib-file-name)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (init-db)
+  (system (string-append "sqlite3 " lib-dir lib-file-name " </home/mbc/projects/bookmunger/db/bookmunger.sql" )))
+
 
 
 (define (move-file old new)
@@ -174,7 +178,7 @@
 	 (ext (substring str dot len)) ;; includes .
 	 (a (substring pref (- len-pref 12) len-pref))
 	 (is-it-zlib? (string= " (z-lib.org)" a))
-	 (pref (if is-it-zlib? (substring pref 0 (- len-pref 12)) str))	 
+	 (pref (if is-it-zlib? (substring pref 0 (- len-pref 12)) pref))	 
 	 (b (last (list-matches " by " pref)))
 	 (start (match:start  b))
 	 (end (match:end  b))
@@ -184,11 +188,12 @@
 	  (auth-lst (get-authors-as-list authors)) ;;gets a list '("Fname1 Lname1" "Fname2 Lname2")
 	  (new-file-name (string-append title ext))
 	 )
-;; (pretty-print  auth-lst)))
+ ;;pref))
     
   `(,title ,auth-lst ,new-file-name) ))
 
-;;(get-title-authors-filename "The Genetic Lottery by Kathryn Paige Harden (z-lib.org).epub")
+;;(get-title-authors-filename "A Biologists Guide to Mathematical Modeling in Ecology and Evolution by Sarah P. Otto, Troy Day.epub")
+
 
 
 (define (add-auths-to-book book-id auth-ids)
@@ -296,14 +301,12 @@
 	 (e (set! book-count (+ book-count 1))))
     #t))
 
-(define (process-all-files lst)
-  (begin
-    (make-lib-backup)
+(define (process-all-files lst)   
     (if (null? (cdr lst))
 	(process-file (car lst))
 	(begin
 	  (process-file (car lst))
-	  (process-all-files (cdr lst))))))
+	  (process-all-files (cdr lst)))))
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -314,9 +317,8 @@
 (define (query-all-fields str)
   ;;returns a list of id as integer
   (let* ( (a   (dbi-query db-obj (string-append "SELECT book.id, book.title FROM book WHERE  book.title LIKE '%" str  "%' UNION
-                                                 SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_tag WHERE book_author.author_id=author.id AND book_author.book_id=book.id AND book_tag.tag_id=tag.id AND book_tag.book_id=book.id AND author.auth_name LIKE '%" str  "%' UNION
-SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_tag WHERE book_author.author_id=author.id AND book_author.book_id=book.id AND book_tag.tag_id=tag.id AND book_tag.book_id=book.id AND tag.tag_name LIKE '%" str  "%'"
-						))  )
+                                                 SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_tag WHERE book_author.author_id=author.id AND book_author.book_id=book.id AND book_tag.tag_id=tag.id AND book_tag.book_id=book.id AND author.author_name LIKE '%" str  "%' UNION
+SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_tag WHERE book_author.author_id=author.id AND book_author.book_id=book.id AND book_tag.tag_id=tag.id AND book_tag.book_id=book.id AND tag.tag_name LIKE '%" str  "%'" )))
 	  (lst '())
 	  (ret (dbi-get_row db-obj))
 	  (dummy (while (not (equal? ret #f))
@@ -325,6 +327,7 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
 		     (set! ret (dbi-get_row db-obj))))))
     lst))
 
+;;(query-all-fields "capital")
 
 (define (display-results lst)
   ;;list is a list of book IDs
@@ -369,6 +372,7 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
 	 (all-files (cddr (scandir on-deck-dir)))
 	 (files-on-deck? (if (= (length all-files) 0) #f #t ))
 	 (dummy (if files-on-deck? (begin
+				     (make-lib-backup)
 				     (process-all-files all-files)
 				     (display (string-append "\nProcessed " (number->string book-count) " books.\n\n")))))	 
 	 (dummy (display (string-append (get-all-tags-as-string) "\nCtrl-z to exit\n\n")))
