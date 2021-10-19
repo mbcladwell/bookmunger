@@ -29,61 +29,20 @@
 ()
 
 
-(map string-trim-both '(" jdhfs " "  skjdfk " " skjdf "  ))
-(= (length (list-matches " byy " "jshfd by sjkdf bjhsjdhfj")) 0)
-
-  (doclist
-    "\n\t\t"
-    (doc "\n\t\t\t"
-         (relative_filename
-           "files/1-s2.0-00221759"
+(define db-obj (dbi-open "sqlite3" (string-append lib-dir lib-file-name)))
 
 
-(cddr (scandir "/home/mbc/test/lib/on-deck"))
+(let* ((str "Beyond")
+       (a (string-append "SELECT book.id, book.title FROM book WHERE  book.title LIKE '%" str  "%' UNION  SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_tag WHERE book_author.author_id=author.id AND book_author.book_id=book.id AND book_tag.tag_id=tag.id AND book_tag.book_id=book.id AND author.author_name LIKE '%" str  "%' UNION SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_tag WHERE book_author.author_id=author.id AND book_author.book_id=book.id AND book_tag.tag_id=tag.id AND book_tag.book_id=book.id AND tag.tag_name LIKE '%" str  "%'" ))
+	(dbi-query db-obj a)
+        (lst '())
+	(ret (dbi-get_row db-obj))
+	  ;; (dummy (while (not (equal? ret #f))
+	  ;; 	   (begin		      
+	  ;; 	     (set! lst (cons (assoc-ref ret "id") lst))
+	  ;; 	     (set! ret (dbi-get_row db-obj)))))
+	  )
+  ret)
+   ;; lst)
 
-(define a "f1 l1 and f2 l2")
-(string-contains-ci "f1 l1 and f2 l2" " and ")
-(substring a 0 5)
-(substring a (+ 5 5) (string-length a))
-
-(define b "last, first")
-(string-split b #\,)
-
-
-
-
-
-  (let* ((str "Smith, Joe M. and Blow, Bill")
-	(str (string-trim-both str))
-	(len-str (string-length str))
-	;;if has and then split and check if has comma and reverse
-	(and-start (string-contains-ci str " and "))
-	(auth-lst (if and-start
-		      (let* (
-			     (str (string-trim-both str))
-			     (len-str (string-length str))
-			     (auth1 (substring str 0 and-start))
-			     (auth2 (substring str (+ and-start 5) len-str))
-			     ;;if auth1 has a comma it is last, first - reverse
-			     (has-comma? (> (length (string-split auth1 #\,)) 1)))
-			(if has-comma?
-			    (let* ((auth1-split (string-split auth1 #\,))
-			     	   (auth1-lname (car auth1-split))
-			      	   (auth1-fname (string-trim-both (cadr auth1-split)))
-			      	   (auth2-split (string-split auth2 #\,))
-			      	   (auth2-lname (car auth2-split))
-			      	   (auth2-fname (string-trim-both (cadr auth2-split)))
-			      	   (auth1rev (string-append auth1-fname " " auth1-lname))
-			      	   (auth2rev (string-append auth2-fname " " auth2-lname)))
-			      (list auth1rev auth2rev))
-			    (list auth1 auth2)))			     
-		      ;; no and
-		      (let*(
-			     (auth-str (string-split str #\,))
-			     (auth-str (map string-trim-both auth-str))
-			     (has-space? (> (length (string-split (car auth-str) #\space)) 1)))
-			;;if it has a space than it is first last, otherwise last, first
-			;;if last first must flip			    
-			(if has-space? auth-str (list (string-append (cadr auth-str) " " (car auth-str))))))))	
-     auth-lst)
 

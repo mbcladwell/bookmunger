@@ -30,17 +30,17 @@
 (define book-count 0)
 
 ;; for testing
-;; (define lib-dir "/home/mbc/projects/bookmunger/db/") ;; home of db
-;; (define lib-backup-dir "/home/mbc/temp/lib/backups/") ;;
-;; (define on-deck-dir "/home/mbc/temp/lib/on-deck/")  ;; out of z-lib ready to have z-lib removed
-;; (define dest-dir "/home/mbc/temp/lib/dest/") ;; final destination directory probably ~/syncd/library/files
-;; (define readme-dir "/home/mbc/temp/lib/readme/")
+(define lib-dir "/home/mbc/projects/bookmunger/db/") ;; home of db
+(define lib-backup-dir "/home/mbc/temp/lib/backups/") ;;
+(define on-deck-dir "/home/mbc/temp/lib/on-deck/")  ;; out of z-lib ready to have z-lib removed
+(define dest-dir "/home/mbc/temp/lib/dest/") ;; final destination directory probably ~/syncd/library/files
+(define readme-dir "/home/mbc/temp/lib/readme/")
 
-(define lib-dir "/home/mbc/syncd/library/db/") ;; home of db
-(define lib-backup-dir "/home/mbc/syncd/library/backup/") ;;
-(define on-deck-dir "/home/mbc/syncd/library/readme/")  ;; out of z-lib ready to have z-lib removed
-(define dest-dir "/home/mbc/syncd/library/files2/") ;; final destination directory probably ~/syncd/library/files
-(define readme-dir "/home/mbc/Documents/readme/")
+;; (define lib-dir "/home/mbc/syncd/library/db/") ;; home of db
+;; (define lib-backup-dir "/home/mbc/syncd/library/backup/") ;;
+;; (define on-deck-dir "/home/mbc/syncd/library/readme/")  ;; out of z-lib ready to have z-lib removed
+;; (define dest-dir "/home/mbc/syncd/library/files2/") ;; final destination directory probably ~/syncd/library/files
+;; (define readme-dir "/home/mbc/Documents/readme/")
 
 
 (define doc-viewer "ebook-viewer") ;;from Calibre
@@ -366,9 +366,22 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
     (system command)))
 
 
+;; (define (display-logo)
+;;   ;;https://patorjk.com/software/taag/#p=display&f=Big&t=Book%20Munger
+;;   (begin
+;;     (display "  ____              _      __  __                             ")
+;;     (display " |  _ \            | |    |  \/  |                            ")
+;;     (display " | |_) | ___   ___ | | __ | \  / |_   _ _ __   __ _  ___ _ __ ")
+;;     (display " |  _ < / _ \ / _ \| |/ / | |\/| | | | | '_ \ / _` |/ _ \ '__|")
+;;     (display " | |_) | (_) | (_) |   <  | |  | | |_| | | | | (_| |  __/ |   ")
+;;     (display " |____/ \___/ \___/|_|\_\ |_|  |_|\__,_|_| |_|\__, |\___|_|   ")
+;;     (display "                                               __/ |          ")
+;;     (display "                                              |___/           \n\n")))
 
 (define (main args)
   (let* ((dummy (activate-readline))
+	 ;;(dummy (display-logo))
+	 (dummy (display "help     me"))
 	 (all-files (cddr (scandir on-deck-dir)))
 	 (files-on-deck? (if (= (length all-files) 0) #f #t ))
 	 (dummy (if files-on-deck? (begin
@@ -377,15 +390,17 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
 				     (display (string-append "\nProcessed " (number->string book-count) " books.\n\n")))))	 
 	 (dummy (display (string-append (get-all-tags-as-string) "\nCtrl-z to exit\n\n")))
 	 (find-me (readline "Query: "))
-	 (lst (query-all-fields find-me))
-	 (dummy (display-results lst))
-	 (what-do  (readline "(o)pen or (r)etrieve (id): "))
-	 (a (string-split what-do #\space))
-	 (action (car a))
-	 (id (string->number (cadr a)))
-	 (b (if (string= action "o")  (view-book id)))
-	 (c (if (string= action "r") (copy-book-to-readme id))))
-    (pretty-print a)))
+	 (lst (query-all-fields find-me)))
+    (if (= (length lst) 0)
+	(display "Match not found!\n\n")
+	(let* ((dummy (display-results lst))			     			     		     
+	       (what-do  (readline "(o)pen or (r)etrieve (id): "))
+	       (a (string-split what-do #\space))
+	       (action (car a))
+	       (id (string->number (cadr a)))
+	       (b (if (string= action "o")  (view-book id)))
+	       (c (if (string= action "r") (copy-book-to-readme id))))
+	  #t))))
 
 
 
