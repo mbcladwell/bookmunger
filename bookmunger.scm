@@ -369,7 +369,7 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
 ;; (define (display-logo)
 ;;   ;;https://patorjk.com/software/taag/#p=display&f=Big&t=Book%20Munger
 ;;   (begin
-;;     (display "  ____              _      __  __                             ")
+;;     (display "  ____              _      __  __")
 ;;     (display " |  _ \            | |    |  \/  |                            ")
 ;;     (display " | |_) | ___   ___ | | __ | \  / |_   _ _ __   __ _  ___ _ __ ")
 ;;     (display " |  _ < / _ \ / _ \| |/ / | |\/| | | | | '_ \ / _` |/ _ \ '__|")
