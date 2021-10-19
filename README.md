@@ -30,7 +30,7 @@ A typical workflow with BM would look like the following:
  
  suffix: removed and discarded. Some providers attach a suffix to the book name as a form of advertising e.g. Dune by Frank Herbert (ManyBooks).epub.  In all cases the suffix is removed and discarded. The new title of the book in the database would be Dune and the file would be Dune.epub
  
- by: the word by must be in the file name and is used to separate title and authors. Everything to the left of the rightmost "by" is considered the title, and everything to the right is the author(s). The algorithm for sorting authors is described below.
+ by: the word by must be in the file name and is used to separate title and authors. Everything to the left of the rightmost " by " is considered the title, and everything to the right is the author(s). The possibilities for author designation is described below.
  
  title: Everything to the left of the rightmost "by" is considered the title.
  
@@ -47,10 +47,30 @@ A typical workflow with BM would look like the following:
  * by Lname1, Fname1 and Lname2, Fname2
  
  Note that title and authors must always be separated by " by "
- Note that if last name is first, names must be separated by and, two names at most.  Commas can not separate last names first e.g. not Lname1, Fname1, Lname2, Fname2,... etc.
+ 
+ Note that if last name is first, names must be separated by " and ", two names at most.  
+ 
+ Commas can not separate last names first e.g. not Lname1, Fname1, Lname2, Fname2,... etc.
  
  When renaming a file, choose one of the patterns above.
  
+ 
+ ## Directory Structure
+ 
+ BM utilizes multiple directories to perform its activities. $HOME is your home directory e.g. for me it is /home/mbc
+ 
+ |Path|Description|
+ |-----|-----|
+|$HOME/library|the top level library that holds other BM relevant directories|
+|$HOME/library||
+|$HOME/library/db|Holds the SQLite database|
+|$HOME/library/files|Holds ebook files that have been entered into the database|
+|$HOME/library/on-deck|Holds ebook files that were just download, but not yet entered into the database.  When BM starts up it looks for files in this directory|
+|$HOME/library/backup|Holds backup copies of the database|
+|$HOME/Documents/readme|Holds copies of books that have been queried out of the database for immediate reading|
+
+
+
  
  
  
