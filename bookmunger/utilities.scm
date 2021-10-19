@@ -1,7 +1,8 @@
 (define-module (bookmunger utilities)
   #:export (find-occurences-in-string
 	    any-not-false?
-	    to-regular-char
+	    display-logo
+	    display-main-menu
 	    ))
 
 
@@ -28,85 +29,24 @@
 ;; (define name "Marjanović Ž")
 ;; (pretty-print (string-map to-regular-char  name))
 
-(define (to-regular-char x)
-  (let* (
-	 (A (string->char-set "ÀÁÂÃÄÅÆĀĂĄ"))
-	 (a (string->char-set "àáâãäåæāă"))
-	 (C (string->char-set "ÇĆĈĊČĆĈĊČ"))
-	 (c (string->char-set "çćĉċčćĉċč"))
-	 (D (string->char-set "ÐĎĐ"))
-	 (d (string->char-set "ď"))
-	 (E (string->char-set "ĒĔĖĘĚ"))
-	 (e (string->char-set "èéêëēĕėęě"))
-	 (G (string->char-set "ĜĞĠĢ"))
-	 (g (string->char-set "ĝğġģ"))
-	 (H (string->char-set "Ĥ"))
-	 (h (string->char-set "ĥĦħ"))
-	 (I (string->char-set "ĨĪĬĮİ"))
-	 (i (string->char-set "ìíîïĩīĭįı"))
-	 (J (string->char-set "Ĵ"))
-	 (j (string->char-set "ĵ"))
-	 (K (string->char-set "Ķ"))
-	 (k (string->char-set "ķĸ"))
-	 (L (string->char-set "ĹĻĽĿŁ"))
-	 (l (string->char-set "ĺļľŀł"))
-	 (N (string->char-set "ÑŃŅŇŊ"))
-	 (n (string->char-set "ñńņňŉŋ"))
-	 (O (string->char-set "ÒÓÔÕÖ×ØŌōŎŐ"))
-	 (o (string->char-set "òóôõö÷øōŏő"))
-	 (R (string->char-set "ŔŖŘ"))
-	 (r (string->char-set "ŕŗ"))
-	 (S (string->char-set "ŚŜŞŠ"))
-	 (s (string->char-set "śŝşš"))
-	 (T (string->char-set "ŢŤŦ"))
-	 (t (string->char-set "ţťŧ"))
-	 (U (string->char-set "ÙÚÛÜŨŪŬŮŰŲ"))
-	 (u (string->char-set "ùúûüũūŭůűų"))
-	 (W (string->char-set "Ŵ"))
-	 (w (string->char-set "ŵ"))
-	 (Y (string->char-set "ÝŶŸ"))
-	 (y (string->char-set "ýŷ"))
-	 (Z (string->char-set "ŹŻŽ"))
-	 (z (string->char-set "źżž"))
-	 )
-    (cond
-     [ (char-set-contains? A x) #\A]
-     [ (char-set-contains? a x) #\a]
-     [ (char-set-contains? C x) #\C]
-     [ (char-set-contains? c x) #\c]
-     [ (char-set-contains? D x) #\D]
-     [ (char-set-contains? d x) #\d]
-     [ (char-set-contains? E x) #\E]
-     [ (char-set-contains? e x) #\e]
-     [ (char-set-contains? G x) #\G]
-     [ (char-set-contains? g x) #\g]
-     [ (char-set-contains? H x) #\H]
-     [ (char-set-contains? h x) #\h]
-     [ (char-set-contains? I x) #\I]
-     [ (char-set-contains? i x) #\i]
-     [ (char-set-contains? J x) #\J]
-     [ (char-set-contains? j x) #\j]
-     [ (char-set-contains? K x) #\K]
-     [ (char-set-contains? k x) #\k]
-     [ (char-set-contains? L x) #\L]
-     [ (char-set-contains? l x) #\l]
-     [ (char-set-contains? N x) #\N]
-     [ (char-set-contains? n x) #\n]
-     [ (char-set-contains? O x) #\O]
-     [ (char-set-contains? o x) #\o]
-     [ (char-set-contains? R x) #\R]
-     [ (char-set-contains? r x) #\r]
-     [ (char-set-contains? S x) #\S]
-     [ (char-set-contains? s x) #\s]
-     [ (char-set-contains? T x) #\T]
-     [ (char-set-contains? t x) #\t]
-     [ (char-set-contains? U x) #\U]
-     [ (char-set-contains? u x) #\u]
-     [ (char-set-contains? W x) #\W]
-     [ (char-set-contains? w x) #\w]
-     [ (char-set-contains? Y x) #\Y]
-     [ (char-set-contains? y x) #\y]
-     [ (char-set-contains? Z x) #\Z]
-     [ (char-set-contains? z x) #\z]
-     [ else  x])
-  ))
+ (define (display-logo)
+   ;;https://patorjk.com/software/taag/#p=display&f=Big&t=Book%20Munger
+   (begin
+     (system "printf \"\\033c\"")
+     (display "  ____              _      __  __\n")
+     (display " |  _ \\            | |    |  \\/  |\n")
+     (display " | |_) | ___   ___ | | __ | \\  / |_   _ _ __   __ _  ___ _ __\n")
+     (display " |  _ < / _ \\ / _ \\| |/ / | |\\/| | | | | '_ \\ / _  |/ _ \\ '__|\n")
+     (display " | |_) | (_) | (_) |   <  | |  | | |_| | | | | (_| |  __/ |\n")
+     (display " |____/ \\___/ \\___/|_|\\_\\ |_|  |_|\\__,_|_| |_|\\__, |\\___|_|\n")
+     (display "                                               __/ |\n")
+     (display "                                              |___/    \n\n")))
+
+(define (display-main-menu)
+(begin
+  (display "1 Query Library\n")
+  (display "2 Process on-deck files\n")
+  (display "3 Add a tag\n\n")
+  (display "Ctrl-z to exit")
+
+  )

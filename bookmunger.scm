@@ -24,7 +24,8 @@
 	     (ice-9 readline) ;;must sudo apt-get install libreadline-dev
 	     (ice-9 pretty-print)
 	     (bookmunger utilities)
-	     (dbi dbi)	   
+	     (bookmunger database)
+	     (dbi dbi)
 	     )
 
 (define book-count 0)
@@ -50,7 +51,6 @@
 ;; database
 (define db-obj (dbi-open "sqlite3" (string-append lib-dir lib-file-name)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (define (init-db)
   (system (string-append "sqlite3 " lib-dir lib-file-name " </home/mbc/projects/bookmunger/db/bookmunger.sql" )))
 
@@ -366,22 +366,11 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
     (system command)))
 
 
-;; (define (display-logo)
-;;   ;;https://patorjk.com/software/taag/#p=display&f=Big&t=Book%20Munger
-;;   (begin
-;;     (display "  ____              _      __  __")
-;;     (display " |  _ \            | |    |  \/  |                            ")
-;;     (display " | |_) | ___   ___ | | __ | \  / |_   _ _ __   __ _  ___ _ __ ")
-;;     (display " |  _ < / _ \ / _ \| |/ / | |\/| | | | | '_ \ / _` |/ _ \ '__|")
-;;     (display " | |_) | (_) | (_) |   <  | |  | | |_| | | | | (_| |  __/ |   ")
-;;     (display " |____/ \___/ \___/|_|\_\ |_|  |_|\__,_|_| |_|\__, |\___|_|   ")
-;;     (display "                                               __/ |          ")
-;;     (display "                                              |___/           \n\n")))
+
 
 (define (main args)
   (let* ((dummy (activate-readline))
-	 ;;(dummy (display-logo))
-	 (dummy (display "help     me"))
+	 (dummy (display-logo))
 	 (all-files (cddr (scandir on-deck-dir)))
 	 (files-on-deck? (if (= (length all-files) 0) #f #t ))
 	 (dummy (if files-on-deck? (begin
