@@ -8,6 +8,7 @@
 
 (add-to-load-path "/home/mbc/projects/bookmunger")
 (add-to-load-path "/gnu/store/va6l1ivclww22fi38w5h99pb4ndn99hg-guile-readline-3.0.2/share/guile/site/3.0")
+(load "/home/mbc/projects/bookmunger/bookmunger/utilities.scm")
 
 (use-modules 
 	     (srfi srfi-19)   ;; date time
@@ -23,34 +24,25 @@
 	     (ice-9 ftw) ;; file tree walk
 	     (ice-9 readline) ;;must sudo apt-get install libreadline-dev
 	     (ice-9 pretty-print)
-	     (bookmunger utilities)
+	    ;; (bookmunger utilities)
 	     (bookmunger database)
 	     (dbi dbi)
 	     )
 
 (define book-count 0)
 
-;; for testing
-(define lib-dir "/home/mbc/projects/bookmunger/db/") ;; home of db
-(define lib-backup-dir "/home/mbc/temp/lib/backups/") ;;
-(define on-deck-dir "/home/mbc/temp/lib/on-deck/")  ;; out of z-lib ready to have z-lib removed
-(define dest-dir "/home/mbc/temp/lib/dest/") ;; final destination directory probably ~/syncd/library/files
-(define readme-dir "/home/mbc/temp/lib/readme/")
-
-;; (define lib-dir "/home/mbc/syncd/library/db/") ;; home of db
-;; (define lib-backup-dir "/home/mbc/syncd/library/backup/") ;;
-;; (define on-deck-dir "/home/mbc/syncd/library/readme/")  ;; out of z-lib ready to have z-lib removed
-;; (define dest-dir "/home/mbc/syncd/library/files2/") ;; final destination directory probably ~/syncd/library/files
-;; (define readme-dir "/home/mbc/Documents/readme/")
-
+(define top-dir "")
+(define lib-dir "") ;; home of db
+(define lib-backup-dir "") ;;
+(define on-deck-dir "")  ;; out of z-lib ready to be processed
+(define dest-dir "") ;; final destination directory probably ~/syncd/library/files
+(define readme-dir "")
 
 (define doc-viewer "ebook-viewer") ;;from Calibre
 (define lib-file-name "book.db")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; database
-(define db-obj (dbi-open "sqlite3" (string-append lib-dir lib-file-name)))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define db-obj #f)
+
 (define (init-db)
   (system (string-append "sqlite3 " lib-dir lib-file-name " </home/mbc/projects/bookmunger/db/bookmunger.sql" )))
 
@@ -269,7 +261,7 @@
 	  (reverse (cons "" (cons b c)) )))  ;;add the last few, then add "" because the while won't process the last element i.e. not recursion
 
 (define (get-all-tags-as-string)
-  (let* ((sep "==========================================================================================\n")
+  (let* ((sep "========================================================================================================\n")
 	 (lst (cdr (get-all-tags-as-list)))
 	 (out sep)
 	 (dummy (while (not (string= (car lst) "") )		  
@@ -368,16 +360,39 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
 
 
 
-(define (main args)
-  (let* ((dummy (activate-readline))
-	 (dummy (display-logo))
+(define (set-vars args)
+  ;;arg should be a list of top level e.g. /home/mbc/temp/lib  no trailing slash
+  ;;first element is file name
+  (begin 
+    (set! top-dir (cadr args))
+    (set! lib-dir (string-append top-dir "/db/")) ;; home of db
+    (set! lib-backup-dir (string-append top-dir "/backups/"))
+    (set! on-deck-dir (string-append top-dir "/on-deck/"))  ;; out of z-lib ready to be processed
+    (set! dest-dir (string-append top-dir "/files/")) ;; final destination directory probably ~/syncd/library/files
+    (set! readme-dir (string-append top-dir "/readme/"))
+    (set! db-obj (dbi-open "sqlite3" (string-append lib-dir lib-file-name)))
+
+    )
+  
+  #t)
+
+
+(define (process-on-deck)
+  (let* (
 	 (all-files (cddr (scandir on-deck-dir)))
+	 (dummy (display on-deck-dir))
 	 (files-on-deck? (if (= (length all-files) 0) #f #t ))
 	 (dummy (if files-on-deck? (begin
 				     (make-lib-backup)
 				     (process-all-files all-files)
-				     (display (string-append "\nProcessed " (number->string book-count) " books.\n\n")))))	 
-	 (dummy (display (string-append (get-all-tags-as-string) "\nCtrl-z to exit\n\n")))
+				     (display (string-append "\nProcessed " (number->string book-count) " books.\n\n")))
+		    (display "\nNo files to process!\n")))	  
+	) #t))
+
+
+(define (query-an-item)
+  (let* ((dummy (display-logo))
+	 (dummy (display (get-all-tags-as-string)))
 	 (find-me (readline "Query: "))
 	 (lst (query-all-fields find-me)))
     (if (= (length lst) 0)
@@ -390,6 +405,26 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
 	       (b (if (string= action "o")  (view-book id)))
 	       (c (if (string= action "r") (copy-book-to-readme id))))
 	  #t))))
+  
+(define (add-tag)
+  (let* ((str  (readline "Tag: "))
+	 (a (dbi-query db-obj (string-append "insert into tag ('tag_name') values('" str "')")))
+	 (b (dbi-query db-obj (string-append "select id from tag where tag_name LIKE '" str "'")))
+	 (tag-id (assoc-ref (dbi-get_row db-obj) "id")))
+   (display (string-append "\nTag: " str " with id: " (number->string tag-id) " added to database.\n" ))))
+
+
+(define (main args)
+  (let*( ;;(dummy (define top-dir (cadr args)))
+	 (dummy (activate-readline))
+	 (dummy (set-vars args))
+	 (dummy (display-logo))
+	 (dummy (display-main-menu))
+	 (selection (readline "Selection: "))
+	 (dummy (cond ((string= selection "1") (query-an-item))
+		      ((string= selection "2") (process-on-deck))
+		      ((string= selection "3") (add-tag)))))
+   #t))
 
 
 

@@ -1,9 +1,9 @@
-(define-module (bookmunger utilities)
-  #:export (find-occurences-in-string
-	    any-not-false?
-	    display-logo
-	    display-main-menu
-	    ))
+;; (define-module (bookmunger utilities)
+;;   #:export (find-occurences-in-string
+;; 	    any-not-false?
+;; 	    display-logo
+;; 	    display-main-menu
+;; 	    ))
 
 
 (use-modules  (ice-9 regex) ;;list-matches
@@ -23,12 +23,7 @@
         (if (null? x) #f
 	    (if (equal? (car x) #f) (any-not-false? (cdr x)) #t)))
 
-;; to use to-regular-char:
-;; (normal-chars (string->char-set "-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' "))
-;; (normal-chars-only? (string-every  normal-chars author-name))
-;; (define name "Marjanović Ž")
-;; (pretty-print (string-map to-regular-char  name))
-
+;
  (define (display-logo)
    ;;https://patorjk.com/software/taag/#p=display&f=Big&t=Book%20Munger
    (begin
@@ -40,13 +35,15 @@
      (display " | |_) | (_) | (_) |   <  | |  | | |_| | | | | (_| |  __/ |\n")
      (display " |____/ \\___/ \\___/|_|\\_\\ |_|  |_|\\__,_|_| |_|\\__, |\\___|_|\n")
      (display "                                               __/ |\n")
-     (display "                                              |___/    \n\n")))
+     (display "                                              |___/    \n")
+     (display (string-append "Library: " top-dir "\n"))
+     (display "Ctrl-z to exit\n\n")))
 
 (define (display-main-menu)
-(begin
-  (display "1 Query Library\n")
-  (display "2 Process on-deck files\n")
-  (display "3 Add a tag\n\n")
-  (display "Ctrl-z to exit")
-
-  )
+  (begin
+    (display-logo)
+    (display "1 Query Library\n")
+    (display "2 Process on-deck files\n")
+    (display "3 Add a tag\n\n")
+  
+  ))

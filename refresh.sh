@@ -1,7 +1,7 @@
 #! /bin/bash
 
-rm ./db/book.db
-sqlite3 ./db/book.db < ./db/bookmunger.sql
+rm /home/mbc/temp/lib/db/book.db
+sqlite3 /home/mbc/temp/lib/db/book.db < ./db/bookmunger.sql
 rm /home/mbc/temp/lib/on-deck/*.*
 rm /home/mbc/temp/lib/dest/*.*
 
