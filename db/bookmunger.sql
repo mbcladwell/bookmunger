@@ -14,6 +14,10 @@ CREATE TABLE tag(
 	 tag_name TEXT unique NOT NULL
 	 );
 
+CREATE TABLE suffix(
+         id INTEGER PRIMARY KEY ASC,
+	 suffix_name TEXT unique NOT NULL
+	 );
 
 CREATE TABLE book_author(
 book_id INTEGER,
@@ -52,5 +56,6 @@ INSERT INTO tag (tag_name) VALUES ('philosophy');
 INSERT INTO tag (tag_name) VALUES ('guile/guix');
 INSERT INTO tag (tag_name) VALUES ('agriculture');
 
+INSERT INTO suffix (suffix_name) VALUES ('(z-lib.org)');
 
 

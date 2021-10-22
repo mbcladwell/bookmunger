@@ -43,9 +43,6 @@
 
 (define db-obj #f)
 
-(define (init-db)
-  (system (string-append "sqlite3 " lib-dir lib-file-name " </home/mbc/projects/bookmunger/db/bookmunger.sql" )))
-
 
 
 (define (move-file old new)
@@ -160,6 +157,8 @@
 ;;(get-authors-as-list "Smith, Joe M. and Blow, Bill")
 
 
+
+
 (define (get-title-authors-filename str)
   ;; return a list '(title '(authors) new-file-name)
   ;; last "by" is the delimiter of title author
@@ -168,9 +167,8 @@
 	 (pref (substring str 0  dot ))
 	 (len-pref (length (string->list pref)))	 
 	 (ext (substring str dot len)) ;; includes .
-	 (a (substring pref (- len-pref 12) len-pref))
-	 (is-it-zlib? (string= " (z-lib.org)" a))
-	 (pref (if is-it-zlib? (substring pref 0 (- len-pref 12)) pref))	 
+	 (all-suffixes (get-all-suffixes-as-list))
+	 (pref (recurse-remove-suffix all-suffixes pref))
 	 (b (last (list-matches " by " pref)))
 	 (start (match:start  b))
 	 (end (match:end  b))
@@ -370,11 +368,8 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
     (set! on-deck-dir (string-append top-dir "/on-deck/"))  ;; out of z-lib ready to be processed
     (set! dest-dir (string-append top-dir "/files/")) ;; final destination directory probably ~/syncd/library/files
     (set! readme-dir (string-append top-dir "/readme/"))
-    (set! db-obj (dbi-open "sqlite3" (string-append lib-dir lib-file-name)))
-
-    )
-  
-  #t)
+    (set! db-obj (dbi-open "sqlite3" (string-append lib-dir lib-file-name))))
+   #t)
 
 
 (define (process-on-deck)
@@ -413,18 +408,37 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
 	 (tag-id (assoc-ref (dbi-get_row db-obj) "id")))
    (display (string-append "\nTag: " str " with id: " (number->string tag-id) " added to database.\n" ))))
 
+(define (add-suffix)
+  (let* ((str  (readline "Suffix: "))
+	 (a (dbi-query db-obj (string-append "insert into suffix ('suffix_name') values('" str "')")))
+	 (b (dbi-query db-obj (string-append "select id from suffix where suffix_name LIKE '" str "'")))
+	 (suffix-id (assoc-ref (dbi-get_row db-obj) "id")))
+   (display (string-append "\nSuffix: " str " with id: " (number->string suffix-id) " added to database.\n" ))))
+
+
+
 
 (define (main args)
-  (let*( ;;(dummy (define top-dir (cadr args)))
-	 (dummy (activate-readline))
-	 (dummy (set-vars args))
-	 (dummy (display-logo))
-	 (dummy (display-main-menu))
-	 (selection (readline "Selection: "))
-	 (dummy (cond ((string= selection "1") (query-an-item))
-		      ((string= selection "2") (process-on-deck))
-		      ((string= selection "3") (add-tag)))))
-   #t))
+  (let* ((dummy (activate-readline))
+	 (result (if (null? (cdr args)) 3
+		     (if (string= (cadr args) "init") 1
+			 (if (access? (string-append (cadr args) "/db/" lib-file-name) F_OK) 2 3)))))
+        (cond ((= result 1) (let* ((desired-dir (readline "\nEnter top level directory: "))
+					  (dir-exists? (access? (string-append desired-dir "/db/" lib-file-name) F_OK)))
+				     (if dir-exists?
+					 (display  (string-append "Library: " desired-dir "/db/" lib-file-name " already exists!\n\n"))
+					 (init-library desired-dir))))				     		     
+		     ( (= result 2) (let* (
+					   (dummy (set-vars args))
+					   (dummy (display-logo))
+					   (dummy (display-main-menu))
+					   (selection (readline "Selection: ")))
+				      (cond ((string= selection "1") (query-an-item))
+					    ((string= selection "2") (process-on-deck))
+					    ((string= selection "3") (add-tag))
+					    ((string= selection "4") (add-suffix)))))					   		       
+		     ((= result 3) (display "\nInvalid argument to bookmunger.sh\nArgument should be either \"init\" or a valid library directory e.g. \"/home/myhome/library\"\n\n")))))
+
 
 
 
