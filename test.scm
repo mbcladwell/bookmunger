@@ -45,46 +45,11 @@
   ret)
    ;; lst)
 
-(format  #t "~a" "  ____              _      __  __")
-(format)
+(define (get-title-auths-w-isbn isbn)
+  (let* ((a (system* "fetch-ebook-metadata" "-i" isbn))
 
+	 )
 
-(define (display-logo)
-  ;;https://patorjk.com/software/taag/#p=display&f=Big&t=Book%20Munger
-  (begin
-    (format  #t "~a" "  ____              _      __  __")
-            (display "  ____              _      __  __")
-    
+    (pretty-print (system* "/usr/bin/fetch-ebook-metadata" "-i" "9781529035674"))))
 
-    (format  #t "~a" " |  _ \            | |    |  \/  |                            ")
-            (display " |  _ \            | |    |  \/  |")
-   
-    (format  #t "~a" " | |_) | ___   ___ | | __ | \  / |_   _ _ __   __ _  ___ _ __ ")
-            (display " | |_) | ___   ___ | | __ | \  / |_   _ _ __   __ _  ___ _ __")
-   
-    (format  #t "~a" " |  _ < / _ \ / _ \| |/ / | |\/| | | | | '_ \ / _` |/ _ \ '__|")
-            (display " |  _ < / _ \ / _ \| |/ / | |\/| | | | | '_ \ / _  |/ _ \ '__|")
-
-    (format  #t "~a" " | |_) | (_) | (_) |   <  | |  | | |_| | | | | (_| |  __/ |   ")
-            (display " | |_) | (_) | (_) |   <  | |  | | |_| | | | | (_| |  __/ |"
-
-    (format  #t "~a" " |____/ \___/ \___/|_|\_\ |_|  |_|\__,_|_| |_|\__, |\___|_|   ")
-            (display " |____/ \___/ \___/|_|\_\ |_|  |_|\__,_|_| |_|\__, |\___|_|")
-
-    (format  #t "~a" "                                               __/ |          ")
-            (display "                                               __/ |")
-
-    (format  #t "~a" "                                              |___/           \n\n")))
-            (display "                                              |___/    \n\n")
-
-
-
-
-            (display "  ____              _      __  __")
-            (display " |  _ \\            | |    |  \\/  |")
-            (display " | |_) | ___   ___ | | __ | \\  / |_   _ _ __   __ _  ___ _ __")
-            (display " |  _ < / _ \\ / _ \\| |/ / | |\\/| | | | | '_ \\ / _  |/ _ \\ '__|")
-            (display " | |_) | (_) | (_) |   <  | |  | | |_| | | | | (_| |  __/ |"
-            (display " |____/ \\___/ \\___/|_|\\_\\ |_|  |_|\\__,_|_| |_|\\__, |\\___|_|")
-            (display "                                               __/ |")
-            (display "                                              |___/    \n\n")
+(get-title-auths-w-isbn "9781529035674")
