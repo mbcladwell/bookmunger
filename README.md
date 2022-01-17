@@ -2,9 +2,9 @@
 
 You are busy. You read WSJ, NYT, follow on Twitter, Gettr, Givvr, Gottr. Your friends are making suggestions on GoodReads, Scribd, Libib. How to keep up? Book Munger can't help you with the reading, but can help you collect, organize, and keep ebooks at your fingertips so that when free time becomes available, you will have access to the books everyone is reading.
 
-Book Munger also works on the assumption that you don't trust Amazon, Mendely, Zotero with your property nor your privacy.  You want control of your books - no DRM, no expiration, no spying,always available, you own it and can share as desired.  The source code of Book Munger is available for inspection to assure you that your privacy is protected.
+Book Munger also works on the assumption that you don't trust Amazon, Mendely, Zotero with your property nor your privacy.  You want control of your books - no DRM, no expiration, no spying, always available, you own it and can share as desired.  The source code of Book Munger is available for inspection to assure you that your privacy is protected.
 
-From this point on I will refer to Book Munger using the unfortunate initials "BM". BM is a terminal application designed to be fast and unobtrusive. No mouse needed. It is easily installed onto your favorite Linux distribution using the Guix Package Manager. Wait - you aren't using Linux yet! - don't hang up!!!  Because BM doesn't require any windowing software, you can spin up your favorite distribution in the cloud, install, and voila! book management with your desktop managed by your cloud provider. If you are running Linux, you probably already have [Remote Desktop Viewer](https://wiki.gnome.org/Apps/Vinagre) installed.
+From this point on I will refer to Book Munger using the unfortunate initials "BM". BM is a terminal application designed to be fast and unobtrusive. No mouse needed. It is easily installed onto your favorite Linux distribution using the Guix Package Manager. Because BM doesn't require any windowing software, you can spin up your favorite distribution in the cloud, install, and enjoy book management with your desktop managed by your cloud provider. If you are running Linux, you probably already have [Remote Desktop Viewer](https://wiki.gnome.org/Apps/Vinagre) installed.
 
 ## Book Munger Workflow
 
@@ -14,7 +14,7 @@ A typical workflow with BM would look like the following:
  
  * You download the book, maybe from Gutenberg, maybe ManyBooks, wherever, and place it in the BM "on-deck" directory. That's it. You move on, keep reading or next activity.  Nothing more need be done until you decide to batch process all the books in your on-deck directory.  BM is meant to be non-obtrusive. Don't interupt your workflow or thought process to add a book to your library - do it later.
  
- * Time comes to process your on-deck directory. Maybe once a week, once a month.  Depends on you. You launch BM, it finds books in your on-deck directory. BM will cycle through each book, extracting title, authors from the filename, prompt you for tags, and load the book into the database. As books are processed, they are renamed and deposited into a destination "library" directory.
+ * Time comes to process your on-deck directory. Maybe once a week, once a month.  Depends on you. You launch BM, it finds books in your on-deck directory. BM will cycle through each book, extracting title, authors from metadata or the filename, prompt you for tags, and load the book into the database. As books are processed, they are renamed and deposited into a destination "library" directory.
  
  * At any time you can query the library by title, author, or tag (keyword). Books that match your query criteria can be opened, or copied to a "readme" directory. The purpose of the readme directory is to hold the books that are to be read soon.  Maybe you make this the default directory for your ereader software.
  
@@ -22,7 +22,7 @@ A typical workflow with BM would look like the following:
  
  ## Book File Name Requirements
  
- As mentioned above, title and author(s) are extracted from the ebook file name, so this name needs to be informative and fit certain patterns.  BM does not provide forms for modifying title or authors.  This is achieved by modifying (renaming) the file directly. Natural intelligence (mine) has been used to design algorithms that can extract author names from a variety of formats.  The decision tree is outlined below. The general pattern for file names is:
+ As mentioned above, title and author(s) might need to be extracted from the ebook file name if metadata is not available, so this name needs to be informative and fit certain patterns.  BM does not provide forms for modifying title or authors.  This is achieved by modifying (renaming) the file directly. Natural intelligence (mine) has been used to design algorithms that can extract author names from a variety of formats.  The decision tree is outlined below. The general pattern for file names is:
  
  * [title] by [author(s)] [suffix] . [extension]  e.g. Dune by Frank Herbert (ManyBooks).epub
  
@@ -65,7 +65,7 @@ A typical workflow with BM would look like the following:
 |$HOME/library||
 |$HOME/library/db|Holds the SQLite database|
 |$HOME/library/files|Holds ebook files that have been entered into the database|
-|$HOME/library/on-deck|Holds ebook files that were just download, but not yet entered into the database.  When BM starts up it looks for files in this directory|
+|$HOME/library/on-deck|Holds ebook files that were just downloaded, but not yet entered into the database.  When BM starts up it looks for files in this directory|
 |$HOME/library/backup|Holds backup copies of the database|
 |$HOME/library/readme|Holds copies of books that have been queried out of the database for immediate reading|
 

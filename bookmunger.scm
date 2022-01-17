@@ -1,13 +1,15 @@
 #! /gnu/store/6l9rix46ydxyldf74dvpgr60rf5ily0c-guile-3.0.7/bin/guile \
--L /gnu/store/hiiljpxr855z0w1ail01phv7vwq40s38-guile-dbi-2.1.6/share/guile/site/2.2 -e main -s
+-L /gnu/store/hiiljpxr855z0w1ail01phv7vwq40s38-guile-dbi-2.1.8/share/guile/site/2.2 -e main -s
 !#
 
 ;; comma delimitted authors, first last names
-;; expecting Title Of Book by Fname M. Lname, Fname2 Lname2 (z-lib.org).epub
+;; expecting Title Of Book by Fname M. Lname, Fname2 Lname2 (manybooks.net).epub
 
 
 (add-to-load-path "/home/mbc/projects/bookmunger")
-(add-to-load-path "/gnu/store/va6l1ivclww22fi38w5h99pb4ndn99hg-guile-readline-3.0.2/share/guile/site/3.0")
+;;(add-to-load-path "/gnu/store/va6l1ivclww22fi38w5h99pb4ndn99hg-guile-readline-3.0.2/share/guile/site/3.0")
+;;(add-to-load-path "/gnu/store/dnymzgz7dm6kh1lk0wzsc9b59xfjdf55-guile-dbi-2.1.8/lib")
+(add-to-load-path "/gnu/store/mf8mfvw5gzq3dqblk98zqll3x7vx96c5-glibc-2.33/lib")
 (load "/home/mbc/projects/bookmunger/bookmunger/utilities.scm")
 
 (use-modules 
@@ -22,9 +24,9 @@
 	     (ice-9 pretty-print)
 	     (ice-9 textual-ports)
 	     (ice-9 ftw) ;; file tree walk
-	     (ice-9 readline) ;;must sudo apt-get install libreadline-dev
+	     (ice-9 readline) ;;must sudo apt-get install libreadline-dev; guix package -i guile-readline
 	     (ice-9 pretty-print)
-	    ;; (bookmunger utilities)
+	     (bookmunger utilities)
 	     (bookmunger database)
 	     (dbi dbi)
 	     )
@@ -34,7 +36,7 @@
 (define top-dir "")
 (define lib-dir "") ;; home of db
 (define lib-backup-dir "") ;;
-(define on-deck-dir "")  ;; out of z-lib ready to be processed
+(define on-deck-dir "")  ;; out of manybooks ready to be processed
 (define dest-dir "") ;; final destination directory probably ~/syncd/library/files
 (define readme-dir "")
 
@@ -419,7 +421,8 @@ SELECT DISTINCT book.id, book.title FROM book, author, tag, book_author, book_ta
 
 
 (define (main args)
-  (let* ((dummy (activate-readline))
+  (let* (
+	 (dummy (activate-readline))
 	 (result (if (null? (cdr args)) 3
 		     (if (string= (cadr args) "init") 1
 			 (if (access? (string-append (cadr args) "/db/" lib-file-name) F_OK) 2 3)))))

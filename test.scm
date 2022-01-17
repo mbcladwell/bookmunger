@@ -43,13 +43,52 @@
 	  ;; 	     (set! ret (dbi-get_row db-obj)))))
 	  )
   ret)
-   ;; lst)
+;; lst)
+
+
+(use-modules 
+	     (srfi srfi-19)   ;; date time
+	     (srfi srfi-1)  ;;list searching   	     
+	     (ice-9 rdelim)
+	     (ice-9 unicode) ;;character sets
+	     (ice-9 popen)
+	     (ice-9 textual-ports) ;;read file into variable
+	     (ice-9 regex) ;;list-matches
+	     (ice-9 pretty-print)
+	     )
+
+
+(define isbn "9781529035674")
 
 (define (get-title-auths-w-isbn isbn)
-  (let* ((a (system* "fetch-ebook-metadata" "-i" isbn))
-
-	 )
-
-    (pretty-print (system* "/usr/bin/fetch-ebook-metadata" "-i" "9781529035674"))))
+  (let* (
+	 (a (number->string (time-second (current-time time-monotonic))))
+	 (temp-file (string-append "/tmp/metadata" a ".txt"))
+	 (b  (system (string-append "/usr/bin/fetch-ebook-metadata -o -i " isbn " > " temp-file)))
+	 (contents (call-with-input-file temp-file get-string-all))
+	 (title-start (match:end (string-match "<dc:title>" contents)))
+	 (title-end (match:start (string-match "</dc:title>" contents)))
+	 (title (substring contents title-start title-end) )
+	 (aut-start (match:end (string-match "<dc:creator[a-zA-Z0-9:=\" -]+>" contents)))
+	 (aut-end (match:start (string-match "</dc:creator>" contents)))
+	 (author (substring contents aut-start aut-end)))
+     (list title  author)))
 
 (get-title-auths-w-isbn "9781529035674")
+
+
+(system  "/usr/bin/fetch-ebook-metadata -o -i 9781529035674 > /home/mbc/gogo2.txt" )
+
+ (use-modules (sxml simple))
+(define myfile  "/tmp/metadata1642337939.txt")
+
+(define contents (call-with-input-file myfile get-string-all))
+
+(match:end (string-match "<dc:creator[a-zA-Z0-9=-:;\" ]+>" contents))
+
+(match:end (string-match "</dc:creator>" contents))
+
+
+(match:end (string-match "<dc:creator[a-zA-Z0-9:=\" -]+>" contents))
+
+(match:end (string-match "<dc:creator[a-zA-Z0-9:=\" -]+>" "<dc:creator opf:file-as=\"Unknown\" opf:role=\"aut\">Edward Snowden</dc:creator>"))
