@@ -1,9 +1,9 @@
-;; (define-module (bookmunger utilities)
-;;   #:export (find-occurences-in-string
-;; 	    any-not-false?
-;; 	    display-logo
-;; 	    display-main-menu
-;; 	    ))
+(define-module (bookmunger utilities)
+  #:export (find-occurences-in-string
+	    any-not-false?
+	    display-logo
+	    display-main-menu
+	    ))
 
 
 (use-modules  (ice-9 regex) ;;list-matches
