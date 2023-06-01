@@ -1,17 +1,18 @@
-#! /gnu/store/qlmpcy5zi84m6dikq3fnx5dz38qpczlc-guile-3.0.8/bin/guile \
--L /gnu/store/3f0lv3m4vlzqc86750025arbskfrq05p-guile-dbi-2.1.8/share/guile/site/2.2 -e main -s
-!#
+;; #! /gnu/store/qlmpcy5zi84m6dikq3fnx5dz38qpczlc-guile-3.0.8/bin/guile \
+;; -L /gnu/store/3f0lv3m4vlzqc86750025arbskfrq05p-guile-dbi-2.1.8/share/guile/site/2.2 -e main -s
+;; !#
 
-;; comma delimitted authors, first last names
-;; expecting Title Of Book by Fname M. Lname, Fname2 Lname2 (manybooks.net).epub
+;; ;; comma delimitted authors, first last names
+;; ;; expecting Title Of Book by Fname M. Lname, Fname2 Lname2 (manybooks.net).epub
 
 
-(add-to-load-path "/home/mbc/projects/bookmunger")
-(add-to-load-path "/home/mbc/.cache/guile/ccache/3.0-LE-8-4.6/home/mbc/projects/bookmunger)")
-;;(add-to-load-path "/gnu/store/va6l1ivclww22fi38w5h99pb4ndn99hg-guile-readline-3.0.2/share/guile/site/3.0")
-;;(add-to-load-path "/gnu/store/dnymzgz7dm6kh1lk0wzsc9b59xfjdf55-guile-dbi-2.1.8/lib")
-(add-to-load-path "/gnu/store/mf8mfvw5gzq3dqblk98zqll3x7vx96c5-glibc-2.33/lib")
-;;(load "/home/mbc/projects/bookmunger/bookmunger/utilities.scm")
+;; (add-to-load-path "/home/mbc/projects/bookmunger")
+;; (add-to-load-path "/home/mbc/.cache/guile/ccache/3.0-LE-8-4.6/home/mbc/projects/bookmunger)")
+;; ;;(add-to-load-path "/gnu/store/va6l1ivclww22fi38w5h99pb4ndn99hg-guile-readline-3.0.2/share/guile/site/3.0")
+;; ;;(add-to-load-path "/gnu/store/dnymzgz7dm6kh1lk0wzsc9b59xfjdf55-guile-dbi-2.1.8/lib")
+;; (add-to-load-path "/gnu/store/mf8mfvw5gzq3dqblk98zqll3x7vx96c5-glibc-2.33/lib")
+;; ;;(load "/home/mbc/projects/bookmunger/bookmunger/utilities.scm")
+
 
 (use-modules 
 	     (srfi srfi-19)   ;; date time
