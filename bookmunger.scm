@@ -10,7 +10,8 @@
 ;; (add-to-load-path "/home/mbc/.cache/guile/ccache/3.0-LE-8-4.6/home/mbc/projects/bookmunger)")
 ;; ;;(add-to-load-path "/gnu/store/va6l1ivclww22fi38w5h99pb4ndn99hg-guile-readline-3.0.2/share/guile/site/3.0")
 ;; ;;(add-to-load-path "/gnu/store/dnymzgz7dm6kh1lk0wzsc9b59xfjdf55-guile-dbi-2.1.8/lib")
- (add-to-load-path "/gnu/store/mf8mfvw5gzq3dqblk98zqll3x7vx96c5-glibc-2.33/lib")
+;; (add-to-load-path "/gnu/store/mf8mfvw5gzq3dqblk98zqll3x7vx96c5-glibc-2.33/lib")
+(add-to-load-path "/gnu/store/5h2w4qi9hk1qzzgi1w83220ydslinr4s-glibc-2.33/lib")
 ;; ;;(load "/home/mbc/projects/bookmunger/bookmunger/utilities.scm")
 
 
